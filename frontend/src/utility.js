@@ -68,7 +68,7 @@ const IMAGE_MAP = {
     kingSwordInStoneCheckProtection: require("./assets/rules/sword_in_stone_check_protection.gif"),
     victory: require("./assets/victory.png"),
     defeat: require("./assets/defeat.png"),
-    draw: require("./assets/draw.PNG"),
+    draw: require("./assets/draw.png"),
     goldCoin: require('./assets/gold_coin.png')
 }
 
