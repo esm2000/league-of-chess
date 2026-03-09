@@ -190,6 +190,12 @@ button {
     font-family: "Basic";
 }
 
+.hp-label {
+    font-family: "Basic";
+    margin-left: 0.3vw;
+    white-space: nowrap;
+}
+
 /* For Firefox */
 progress::-moz-progress-bar {
     background: red;

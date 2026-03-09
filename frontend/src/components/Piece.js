@@ -250,15 +250,22 @@ const Piece = (props) => {
                 onClick={() => handlePieceClick()}
             />
             {props.health ?
-                <progress 
-                    className={pickClassName()}
-                    value={props.health} 
-                    max={MAX_BOSS_HEALTH[pickClassName().replace("_piece", "")]}
-                    style={{
-                        top: `${topPosition + (3.25 * (isMobile ? 2: 1)) }vw`,
-                        left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`
-                    }}
-                /> : null}
+                <div style={{
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    top: `${topPosition + (3.25 * (isMobile ? 2: 1))}vw`,
+                    left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`
+                }}>
+                    <progress
+                        className={pickClassName()}
+                        value={props.health}
+                        max={MAX_BOSS_HEALTH[pickClassName().replace("_piece", "")]}
+                    />
+                    <span className="hp-label" style={{fontSize: `${isMobile ? 1.8 : 0.9}vw`}}>
+                        {props.health}/{MAX_BOSS_HEALTH[pickClassName().replace("_piece", "")]}
+                    </span>
+                </div> : null}
             {props.isStunned ?
                 <img
                     src={IMAGE_MAP['stunned']}
