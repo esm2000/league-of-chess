@@ -197,6 +197,11 @@ class GameState(TypedDict, total=False):
     previous_state: GameState
     last_updated: datetime.datetime
 
+    # CPU player fields
+    cpu_id: Optional[str]
+    last_checked_by_cpu: Optional[datetime.datetime]
+    version: int
+
 
 # ---------------------------------------------------------------------------
 # Helper result types
