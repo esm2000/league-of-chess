@@ -234,6 +234,52 @@ const Piece = (props) => {
         backgroundColor: bgColor,
     })
 
+    const isAdjacentToHeraldBuffedPiece = () => {
+        if (!props.type.toLowerCase().includes('pawn')) return false
+        const boardState = gameState.boardState
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue
+                const r = props.row + dr
+                const c = props.col + dc
+                if (r < 0 || r > 7 || c < 0 || c > 7) continue
+                const square = boardState[r]?.[c]
+                if (square?.some(piece => piece.type.includes(props.side) && piece.board_herald_buff)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    const getActiveNeutralBuffs = () => {
+        if (!props.neutralBuffLog || props.side === 'neutral') return []
+        const playerBuffs = props.neutralBuffLog[props.side]
+        if (!playerBuffs) return []
+
+        const buffs = []
+        const isPawn = props.type.toLowerCase().includes('pawn')
+
+        // Dragon: team-wide buff, show on all pieces
+        if (playerBuffs.dragon?.stacks > 0) {
+            buffs.push({ key: 'dragon', icon: 'neutralDragon', count: playerBuffs.dragon.stacks })
+        }
+
+        // Board Herald: show on the piece that captured it, and on adjacent allied pawns
+        if (props.boardHeraldBuff || (playerBuffs.boardHerald?.active && isAdjacentToHeraldBuffedPiece())) {
+            buffs.push({ key: 'herald', icon: 'neutralBoardHerald', count: null })
+        }
+
+        // Baron Nashor: pawn buff, show on pawns only
+        if (playerBuffs.baronNashor?.active && isPawn) {
+            buffs.push({ key: 'baron', icon: 'neutralBaronNashor', count: null })
+        }
+
+        return buffs
+    }
+
+    const activeNeutralBuffs = getActiveNeutralBuffs()
+
     const buffedSrc = props.pawnBuff ? props.type + `${props.pawnBuff + 1}` : props.type
     const image_src = IMAGE_MAP[buffedSrc] ? buffedSrc : props.type
 
@@ -370,7 +416,7 @@ const Piece = (props) => {
             {props.checkProtection ?
                 Array.from({length: props.checkProtection}, (_, i) => i + 1).map((count) => {
                     return(
-                    <img 
+                    <img
                         src={IMAGE_MAP['checkProtection']}
                         className={pickClassName()}
                         style={{
@@ -381,6 +427,47 @@ const Piece = (props) => {
                         }}
                     />);
                 }): null
+            }
+            {activeNeutralBuffs.length > 0 ?
+                activeNeutralBuffs.map((buff, i) => (
+                    <div
+                        key={`buff-${buff.key}`}
+                        className="neutral-buff-indicator"
+                        style={{
+                            position: 'absolute',
+                            top: `${topPosition + (i * (isMobile ? 1.6 : 0.8))}vw`,
+                            left: `${leftPosition - (isMobile ? 1.8 : 0.9)}vw`,
+                            width: isMobile ? '1.6vw' : '0.8vw',
+                            height: isMobile ? '1.6vw' : '0.8vw',
+                            zIndex: 5,
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        <img
+                            src={IMAGE_MAP[buff.icon]}
+                            alt={buff.key}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                imageRendering: 'pixelated'
+                            }}
+                        />
+                        {buff.count !== null ?
+                            <span
+                                style={{
+                                    position: 'absolute',
+                                    bottom: isMobile ? '-0.6vw' : '-0.3vw',
+                                    right: isMobile ? '-0.6vw' : '-0.3vw',
+                                    fontSize: isMobile ? '1vw' : '0.5vw',
+                                    fontWeight: 'bold',
+                                    color: 'white',
+                                    textShadow: '1px 1px 1px black, -1px -1px 1px black, 1px -1px 1px black, -1px 1px 1px black',
+                                    lineHeight: 1
+                                }}
+                            >{buff.count}</span>
+                        : null}
+                    </div>
+                )) : null
             }
         </div>
     );
