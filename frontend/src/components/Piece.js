@@ -234,6 +234,24 @@ const Piece = (props) => {
         backgroundColor: bgColor,
     })
 
+    const isAdjacentToHeraldBuffedPiece = () => {
+        if (!props.type.toLowerCase().includes('pawn')) return false
+        const boardState = gameState.boardState
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue
+                const r = props.row + dr
+                const c = props.col + dc
+                if (r < 0 || r > 7 || c < 0 || c > 7) continue
+                const square = boardState[r]?.[c]
+                if (square?.some(piece => piece.type.includes(props.side) && piece.board_herald_buff)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     const getActiveNeutralBuffs = () => {
         if (!props.neutralBuffLog || props.side === 'neutral') return []
         const playerBuffs = props.neutralBuffLog[props.side]
@@ -247,8 +265,8 @@ const Piece = (props) => {
             buffs.push({ key: 'dragon', icon: 'neutralDragon', count: playerBuffs.dragon.stacks })
         }
 
-        // Board Herald: show on all pieces when active
-        if (playerBuffs.boardHerald?.active) {
+        // Board Herald: show on the piece that captured it, and on adjacent allied pawns
+        if (props.boardHeraldBuff || (playerBuffs.boardHerald?.active && isAdjacentToHeraldBuffedPiece())) {
             buffs.push({ key: 'herald', icon: 'neutralBoardHerald', count: null })
         }
 

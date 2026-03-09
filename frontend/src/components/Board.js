@@ -87,6 +87,7 @@ const Board = () => {
                                                         health={piece.health}
                                                         shopPieceSelected={shopPieceSelected}
                                                         markedForDeath={piece.marked_for_death}
+                                                        boardHeraldBuff={piece.board_herald_buff}
                                                         neutralBuffLog={gameState.neutralBuffLog}
                                                         // Only white king gets castle buttons; black castling is handled by AI
                                                         castleMoves={piece.type === "white_king" ? castleMoves : []}
