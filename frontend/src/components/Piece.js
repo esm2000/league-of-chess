@@ -261,6 +261,7 @@ const Piece = (props) => {
                         className={pickClassName()}
                         value={props.health}
                         max={MAX_BOSS_HEALTH[pickClassName().replace("_piece", "")]}
+                        style={{position: 'static', width: `${isMobile ? 5 : 2.5}vw`}}
                     />
                     <span className="hp-label" style={{fontSize: `${isMobile ? 1.8 : 0.9}vw`}}>
                         {props.health}/{MAX_BOSS_HEALTH[pickClassName().replace("_piece", "")]}
