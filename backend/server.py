@@ -1,3 +1,6 @@
+import os
+import threading
+
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -27,6 +30,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_event():
+    if os.environ.get("CPU_PLAYER_ENABLED", "true").lower() == "true":
+        from src.cpu_player import start_cpu_polling_loop
+        thread = threading.Thread(target=start_cpu_polling_loop, daemon=True)
+        thread.start()
+        logger.info("CPU player polling thread started")
+
 
 # Needed for K8 health probe or debugging
 @app.get("/")

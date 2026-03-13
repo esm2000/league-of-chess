@@ -48,6 +48,7 @@ class GameStateRequest(BaseModel, extra=Extra.allow):
     check: dict
     castle_log: dict
     neutral_buff_log: dict
+    version: int = 0
 
 
 @router.post("/game", status_code=201)
@@ -130,12 +131,6 @@ def update_game_state(id: str, state: GameStateRequest, response: Response, play
     is_valid_game_state = handle_endgame_conditions(
         old_game_state, new_game_state, moved_pieces, is_valid_game_state, should_increment_turn_count
     )
-
-    # TODO: In another script, use endless loop to update games with
-    #       odd number turns if its been 6 seconds since the last update 
-    #       and there are no pawn exchanges in progress;
-    #       sleep for a second at end of loop
-    #       PROVIDE EXCEPTION FOR TESTS
 
     # Finalize game state
     finalize_game_state(old_game_state, new_game_state, moved_pieces, player, 

@@ -44,6 +44,9 @@ empty_game = {
             "baron_nashor": {"active": False, "turn": 0}
         }
     },
+    "cpu_id": None,
+    "last_checked_by_cpu": None,
+    "version": 0,
     "board_state": [
         [None] * 8,
         [None] * 8,

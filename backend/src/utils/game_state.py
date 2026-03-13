@@ -44,8 +44,9 @@ def manage_game_state(old_game_state: GameState, new_game_state: GameState) -> N
 
 
 def perform_game_state_update(new_game_state: GameState, mongo_client: MongoClient, game_id: str) -> None:
-    """Persist game state to MongoDB."""
+    """Persist game state to MongoDB with version increment for optimistic concurrency."""
     new_game_state["last_updated"] = datetime.datetime.now()
+    new_game_state["version"] = new_game_state.get("version", 0) + 1
     query = {"_id": ObjectId(game_id)}
     new_values = {"$set": new_game_state}
     game_database = mongo_client["game_db"]
