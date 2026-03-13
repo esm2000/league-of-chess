@@ -8,6 +8,7 @@ import CapturedPieces from './CapturedPieces';
 import HUD from './HUD';
 import Victory from './Victory';
 import Defeat from './Defeat';
+import Draw from './Draw';
 import PawnExchangeModal from './PawnExchangeModal';
 
 
@@ -119,7 +120,8 @@ const Board = () => {
                         col={swordInTheStonePosition[1]}
                     /> : null
                 }
-                {blackDefeat ?
+                {blackDefeat && whiteDefeat ?
+                    <Draw isMobile={isMobile}/> : blackDefeat ?
                     <Victory isMobile={isMobile}/> : whiteDefeat ?
                     <Defeat isMobile={isMobile}/> : null
                 }
