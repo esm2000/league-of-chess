@@ -190,21 +190,28 @@ button {
     font-family: "Basic";
 }
 
+.hp-label {
+    font-family: "Basic";
+    margin-left: 0.3vw;
+    white-space: nowrap;
+    color: #cc0000;
+}
+
 /* For Firefox */
 progress::-moz-progress-bar {
-    background: red;
+    background: #cc0000;
     font-size: 0.25vw;
 }
 
 /* For Chrome or Safari */
 progress::-webkit-progress-value {
-    background: red;
+    background: #cc0000;
     font-size: 0.25vw;
 }
 
 /* For IE10 */
 progress {
-    background: red;
+    background: #cc0000;
     font-size: 0.25vw;
 }
 
@@ -320,19 +327,19 @@ progress {
 
     /* For Firefox */
     progress::-moz-progress-bar {
-        background: red;
+        background: #cc0000;
         font-size: 0.5vw;
     }
 
     /* For Chrome or Safari */
     progress::-webkit-progress-value {
-        background: red;
+        background: #cc0000;
         font-size: 0.5vw;
     }
 
     /* For IE10 */
     progress {
-        background: red;
+        background: #cc0000;
         font-size: 0.5vw;
     }
 
