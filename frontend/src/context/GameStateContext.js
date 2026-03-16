@@ -1,19 +1,62 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { PLAYERS, BASE_API_URL, convertKeysToCamelCase, convertKeysToSnakeCase } from '../utility';
 
-const GameStateContext = createContext({
+const createEmptyBoardState = () => (
+    Array.from({ length: 8 }, () => Array(8).fill(null))
+)
+
+const createInitialGameState = () => ({
+    initialState: true,
     turnCount: 0,
     positionInPlay: [null, null],
     boardState: [
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null),
-        Array(8).fill(null)
+        [[{"type":"black_pawn"}], [{"type":"black_knight"}], [{"type":"black_bishop", "energizeStacks": 0}], [{"type":"black_queen"}], [{"type":"black_king"}], [{"type":"black_bishop", "energizeStacks": 0}], [{"type":"black_knight"}], [{"type":"black_rook"}]],
+        Array.from({ length: 8 }, () => [{"type":"black_pawn"}]),
+        Array.from({ length: 8 }, () => null),
+        Array.from({ length: 8 }, () => null),
+        Array.from({ length: 8 }, () => null),
+        Array.from({ length: 8 }, () => null),
+        Array.from({ length: 8 }, () => [{"type":"white_pawn"}]),
+        [[{"type":"white_rook"}], [{"type":"white_knight"}], [{"type":"white_bishop", "energizeStacks": 0}], [{"type":"white_queen"}], [{"type":"white_king"}], [{"type":"white_bishop", "energizeStacks": 0}], [{"type":"white_knight"}], [{"type":"white_rook"}]],
     ],
+    possibleMoves: [],
+    possibleCaptures: [],
+    castleMoves: [],
+    capturedPieces: {
+        [PLAYERS[0]]: [],
+        [PLAYERS[1]]: []
+    },
+    graveyard: [],
+    swordInTheStonePosition: null,
+    capturePointAdvantage: null,
+    blackDefeat: false,
+    whiteDefeat: false,
+    goldCount: {
+        [PLAYERS[0]]: 0,
+        [PLAYERS[1]]: 0
+    },
+    bishopSpecialCaptures: [],
+    latestMovement: {},
+    queenReset: false,
+    neutralAttackLog: {},
+    check: {
+        [PLAYERS[0]]: false,
+        [PLAYERS[1]]: false
+    },
+    castleLog: {
+        white: {hasKingMoved: false, hasLeftRookMoved: false, hasRightRookMoved: false},
+        black: {hasKingMoved: false, hasLeftRookMoved: false, hasRightRookMoved: false}
+    },
+    neutralBuffLog: {
+        white: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}},
+        black: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}}
+    }
+})
+
+const GameStateContext = createContext({
+    turnCount: 0,
+    positionInPlay: [null, null],
+    boardState: createEmptyBoardState(),
     possibleMoves: [],
     possibleCaptures: [],
     castleMoves: [],
@@ -77,54 +120,7 @@ export function GameStateProvider({children}) {
         });
     }
 
-    const initGameState = {
-        initialState: true,
-        turnCount: 0,
-        positionInPlay: [null, null],
-        boardState: [
-            [[{"type":"black_pawn"}], [{"type":"black_knight"}], [{"type":"black_bishop", "energizeStacks": 0}], [{"type":"black_queen"}], [{"type":"black_king"}], [{"type":"black_bishop", "energizeStacks": 0}], [{"type":"black_knight"}], [{"type":"black_rook"}]],
-            Array(8).fill([{"type":"black_pawn"}]),
-            Array(8).fill(null),
-            Array(8).fill(null),
-            Array(8).fill(null),
-            Array(8).fill(null),
-            Array(8).fill([{"type":"white_pawn"}]),
-            [[{"type":"white_rook"}], [{"type":"white_knight"}], [{"type":"white_bishop", "energizeStacks": 0}], [{"type":"white_queen"}], [{"type":"white_king"}], [{"type":"white_bishop", "energizeStacks": 0}], [{"type":"white_knight"}], [{"type":"white_rook"}]],
-        ],
-        possibleMoves: [],
-        possibleCaptures: [],
-        castleMoves: [],
-        capturedPieces: {
-            [PLAYERS[0]]: [],
-            [PLAYERS[1]]: []
-        }, 
-        graveyard: [],
-        swordInTheStonePosition: null,
-        capturePointAdvantage: null,
-        blackDefeat: false,
-        whiteDefeat: false,
-        goldCount: {
-            [PLAYERS[0]]: 0,
-            [PLAYERS[1]]: 0
-        },
-        bishopSpecialCaptures: [],
-        latestMovement: {},
-        queenReset: false,
-        neutralAttackLog: {},
-        check: {
-            [PLAYERS[0]]: false,
-            [PLAYERS[1]]: false
-        },
-        castleLog: {
-            white: {hasKingMoved: false, hasLeftRookMoved: false, hasRightRookMoved: false},
-            black: {hasKingMoved: false, hasLeftRookMoved: false, hasRightRookMoved: false}
-        },
-        neutralBuffLog: {
-            white: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}},
-            black: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}}
-        }
-    }
-    const [gameState, setGameState] = useState(initGameState);
+    const [gameState, setGameState] = useState(createInitialGameState);
 
     const fetchInProgress = useRef(false)
     const fetchGeneration = useRef(0)
@@ -178,7 +174,7 @@ export function GameStateProvider({children}) {
         fetchGeneration.current += 1
         sessionStorage.removeItem("gameStateId")
         sessionStorage.removeItem("lastUpdated")
-        setGameState({...initGameState, updateGameState, restartGame})
+        setGameState({...createInitialGameState(), updateGameState, restartGame})
         fetchInProgress.current = false
         fetchGameState()
     }
@@ -199,6 +195,11 @@ export function GameStateProvider({children}) {
             {children}
         </GameStateContext.Provider>
     )
+}
+
+export {
+    createEmptyBoardState,
+    createInitialGameState,
 }
 
 export default GameStateContext;

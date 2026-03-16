@@ -107,6 +107,7 @@ const Square = (props) => {
 
     return (
         <div
+            data-square={`${row}-${col}`}
             style={{ backgroundColor, position: 'relative' }}
             className="square"
             onClick={() => handleSquareClick()}

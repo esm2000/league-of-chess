@@ -76,6 +76,16 @@ cd frontend && npm start
 
 Open http://localhost:3000 in your browser.
 
+#### Rule Asset Capture
+
+Rule screenshots and GIFs can be regenerated from deterministic capture scenes instead of manual screenshots:
+
+```bash
+cd frontend && npm run capture:rules
+```
+
+See [docs/rule-asset-capture.md](docs/rule-asset-capture.md) for scene previews, crop-region behavior, and output options.
+
 ### Unit Tests
 
 To run unit tests navigate to root directory of folder and run the following in your terminal
