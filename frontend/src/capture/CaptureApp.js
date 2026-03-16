@@ -43,6 +43,24 @@ const toClipRect = (rect, padding = 0) => {
     }
 }
 
+const applyEdgeOffset = (clipRect, edgeOffset = {}) => {
+    if (!clipRect) {
+        return null
+    }
+
+    const nextLeft = clipRect.x + (edgeOffset.left || 0)
+    const nextTop = clipRect.y + (edgeOffset.top || 0)
+    const nextRight = clipRect.x + clipRect.width + (edgeOffset.right || 0)
+    const nextBottom = clipRect.y + clipRect.height + (edgeOffset.bottom || 0)
+
+    return {
+        x: Math.max(0, Math.round(nextLeft)),
+        y: Math.max(0, Math.round(nextTop)),
+        width: Math.max(1, Math.round(nextRight - nextLeft)),
+        height: Math.max(1, Math.round(nextBottom - nextTop))
+    }
+}
+
 const getSquareElement = ([row, col]) => document.querySelector(`[data-square="${row}-${col}"]`)
 
 const getCropRect = (crop) => {
@@ -57,7 +75,10 @@ const getCropRect = (crop) => {
             return null
         }
 
-        return toClipRect(boardGrid.getBoundingClientRect(), crop.padding || 0)
+        return applyEdgeOffset(
+            toClipRect(boardGrid.getBoundingClientRect(), crop.padding || 0),
+            crop.edgeOffset
+        )
     }
 
     if (crop.type === 'board-frame') {
@@ -67,7 +88,10 @@ const getCropRect = (crop) => {
             return null
         }
 
-        return toClipRect(boardFrame.getBoundingClientRect(), crop.padding || 0)
+        return applyEdgeOffset(
+            toClipRect(boardFrame.getBoundingClientRect(), crop.padding || 0),
+            crop.edgeOffset
+        )
     }
 
     if (crop.type === 'squares') {
@@ -87,7 +111,10 @@ const getCropRect = (crop) => {
             bottom: Math.max(startRect.bottom, endRect.bottom)
         }
 
-        return toClipRect(unionRect, crop.padding || 0)
+        return applyEdgeOffset(
+            toClipRect(unionRect, crop.padding || 0),
+            crop.edgeOffset
+        )
     }
 
     return null

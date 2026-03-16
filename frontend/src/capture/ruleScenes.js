@@ -69,11 +69,12 @@ const createAnimatedScene = (id, crop, steps, extra = {}) => ({
     ...extra
 })
 
-const squareRegion = (from, to, padding = 0) => ({
+const squareRegion = (from, to, padding = 0, edgeOffset = null) => ({
     type: 'squares',
     from,
     to,
-    padding
+    padding,
+    edgeOffset
 })
 
 const boardCrop = (padding = 0) => ({
@@ -159,7 +160,7 @@ const RULE_SCENES = [
     ),
     createAnimatedScene(
         'normal_pawn_movement',
-        squareRegion([4, 2], [7, 4]),
+        squareRegion([4, 2], [7, 4], 0, {left: 1, right: -1}),
         [
             createSceneState({
                 boardState: placePieces([
@@ -229,7 +230,7 @@ const RULE_SCENES = [
     ),
     createStaticScene(
         'knight_movement',
-        squareRegion([3, 0], [6, 3]),
+        squareRegion([3, 0], [6, 3], 0, { top: 1, bottom: -1}),
         createSceneState({
             boardState: placePieces([
                 { position: [5, 2], pieces: createPiece('white_knight') }
@@ -240,7 +241,7 @@ const RULE_SCENES = [
     ),
     createStaticScene(
         'knight_limits',
-        squareRegion([3, 0], [6, 3]),
+        squareRegion([3, 0], [6, 3], 0, { top: 14, bottom: 14 }),
         createSceneState({
             boardState: placePieces([
                 { position: [5, 2], pieces: createPiece('white_knight') },
