@@ -48,10 +48,11 @@ const applyEdgeOffset = (clipRect, edgeOffset = {}) => {
         return null
     }
 
-    const nextLeft = clipRect.x + (edgeOffset.left || 0)
-    const nextTop = clipRect.y + (edgeOffset.top || 0)
-    const nextRight = clipRect.x + clipRect.width + (edgeOffset.right || 0)
-    const nextBottom = clipRect.y + clipRect.height + (edgeOffset.bottom || 0)
+    const offset = edgeOffset || {}
+    const nextLeft = clipRect.x + (offset.left || 0)
+    const nextTop = clipRect.y + (offset.top || 0)
+    const nextRight = clipRect.x + clipRect.width + (offset.right || 0)
+    const nextBottom = clipRect.y + clipRect.height + (offset.bottom || 0)
 
     return {
         x: Math.max(0, Math.round(nextLeft)),

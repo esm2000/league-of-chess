@@ -64,7 +64,7 @@ const createAnimatedScene = (id, crop, steps, extra = {}) => ({
     id,
     format: 'gif',
     crop,
-    frameDelayMs: 700,
+    frameDelayMs: 1000,
     steps: steps.map((state) => ({ state })),
     ...extra
 })
@@ -296,13 +296,13 @@ const RULE_SCENES = [
     ),
     createStaticScene(
         'bishop_movement',
-        squareRegion([3, 0], [6, 3]),
+        squareRegion([0, 0], [3, 3]),
         createSceneState({
             boardState: placePieces([
-                { position: [5, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) }
+                { position: [2, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) }
             ]),
-            positionInPlay: [5, 2],
-            possibleMoves: [[4, 1], [3, 0], [4, 3], [6, 1], [6, 3]]
+            positionInPlay: [2, 2],
+            possibleMoves: [[0, 0], [1, 1], [3, 1], [3, 3], [1, 3]]
         })
     ),
     createAnimatedScene(
@@ -326,87 +326,116 @@ const RULE_SCENES = [
     ),
     createAnimatedScene(
         'bishop_stacks_capture',
-        squareRegion([2, 1], [5, 4]),
+        squareRegion([0, 0], [3, 3]),
         [
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 2], pieces: createPiece('white_bishop', { energizeStacks: 45 }) },
-                    { position: [3, 4], pieces: createPiece('black_knight') }
-                ]),
-                positionInPlay: [5, 2],
-                possibleCaptures: [[[3, 4], [3, 4]]]
+                    { position: [2, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) },
+                    { position: [0, 0], pieces: createPiece('black_knight') }
+                ])
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [3, 4], pieces: createPiece('white_bishop', { energizeStacks: 55 }) }
+                    { position: [2, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) },
+                    { position: [0, 0], pieces: createPiece('black_knight') }
                 ]),
-                capturedPieces: { white: ['black_knight'], black: [] }
+                positionInPlay: [2, 2],
+                possibleMoves: [ [1, 1], [3, 1], [1, 3], [3, 3]],
+                possibleCaptures: [[[0, 0], [0, 0]]]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [0, 0], pieces: createPiece('white_bishop', { energizeStacks: 35 }) }
+                ])
             })
-        ],
-        { frameDelayMs: 650 }
+        ]
     ),
     createAnimatedScene(
         'bishop_energized_capture',
-        squareRegion([2, 2], [5, 5]),
+        squareRegion([0, 0], [3, 3]),
         [
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 2], pieces: createPiece('white_bishop', { energizeStacks: 100 }) },
-                    { position: [3, 4], pieces: createPiece('black_knight') }
+                    { position: [3, 2], pieces: createPiece('white_bishop', { energizeStacks: 100 }) },
+                    { position: [1, 0], pieces: createPiece('black_pawn') },
+                    { position: [1, 2], pieces: createPiece('black_pawn') }
+
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [3, 2], pieces: createPiece('white_bishop', { energizeStacks: 100 }) },
+                    { position: [1, 0], pieces: createPiece('black_pawn') },
+                    { position: [1, 2], pieces: createPiece('black_pawn') }
+
                 ]),
-                positionInPlay: [5, 2],
+                positionInPlay: [3, 2],
+                possibleMoves: [ [2, 3] ],
                 possibleCaptures: [
-                    [[2, 3], [3, 4]],
-                    [[2, 5], [3, 4]],
-                    [[4, 3], [3, 4]],
-                    [[4, 5], [3, 4]]
+                    [[2, 1], [1, 0]],
+                    [[2, 1], [1, 2]],
                 ]
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [4, 3], pieces: createPiece('white_bishop', { energizeStacks: 0 }) }
-                ]),
-                capturedPieces: { white: ['black_knight'], black: [] }
-            })
-        ],
-        { frameDelayMs: 700 }
+                    { position: [2, 1], pieces: createPiece('white_bishop', { energizeStacks: 0 }) },
+
+                ])
+            }),
+        ]
     ),
     createAnimatedScene(
         'bishop_debuff',
-        squareRegion([2, 0], [5, 3]),
+        squareRegion([0, 0], [4, 3]),
         [
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 0], pieces: createPiece('white_bishop') },
-                    { position: [2, 2], pieces: createPiece('black_knight', { bishopDebuff: 1 }) }
+                    { position: [4, 1], pieces: createPiece('white_bishop') },
+                    { position: [1, 2], pieces: createPiece('black_knight', { bishopDebuff: 2 }) }
                 ])
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 0], pieces: createPiece('white_bishop') },
-                    { position: [2, 2], pieces: createPiece('black_knight', { bishopDebuff: 2 }) }
-                ])
+                    { position: [4, 1], pieces: createPiece('white_bishop') },
+                    { position: [1, 2], pieces: createPiece('black_knight', { bishopDebuff: 2 }) }
+                ]),
+                positionInPlay: [4, 1],
+                possibleMoves: [ [3, 0], [3, 2], [2, 3] ]
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 0], pieces: createPiece('white_bishop') },
-                    { position: [2, 2], pieces: createPiece('black_knight', { bishopDebuff: 3 }) }
+                    { position: [3, 0], pieces: createPiece('white_bishop') },
+                    { position: [1, 2], pieces: createPiece('black_knight', { bishopDebuff: 3 }) }
                 ])
-            })
+            }),
         ],
-        { frameDelayMs: 700 }
     ),
-    createStaticScene(
+    createAnimatedScene(
         'bishop_capture',
-        squareRegion([3, 0], [6, 3]),
-        createSceneState({
-            boardState: placePieces([
-                { position: [5, 0], pieces: createPiece('black_bishop', { energizeStacks: 50 }) },
-                { position: [4, 3], pieces: createPiece('white_knight') }
-            ]),
-            positionInPlay: [4, 3],
-            possibleCaptures: [[[4, 1], [5, 0]]]
-        })
+        squareRegion([0, 0], [2, 3]),
+        [
+            createSceneState({
+                boardState: placePieces([
+                    { position: [2, 0], pieces: createPiece('white_bishop', { energizeStacks: 50 }) },
+                    { position: [1, 3], pieces: createPiece('black_knight') }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [2, 0], pieces: createPiece('white_bishop', { energizeStacks: 50 }) },
+                    { position: [1, 3], pieces: createPiece('black_knight') }
+                ]),
+                positionInPlay: [1, 3],
+                possibleCaptures: [[[2, 1], [2, 0]]],
+                possibleMoves: [[0, 1]]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [2, 1], pieces: createPiece('black_knight') }
+                ]),
+                capturedPieces: { white: ['white_bishop'], black: [] }
+            })
+        ]
     ),
     createStaticScene(
         'queen_movement',

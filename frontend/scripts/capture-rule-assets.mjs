@@ -326,6 +326,202 @@ const capturePng = async (session, outputPath, clip) => {
     await writeFile(outputPath, Buffer.from(screenshot.data, 'base64'));
 };
 
+const applyEdgeOffset = (clipRect, edgeOffset = {}) => {
+    if (!clipRect) {
+        return null;
+    }
+
+    const offset = edgeOffset || {};
+    const nextLeft = clipRect.x + (offset.left || 0);
+    const nextTop = clipRect.y + (offset.top || 0);
+    const nextRight = clipRect.x + clipRect.width + (offset.right || 0);
+    const nextBottom = clipRect.y + clipRect.height + (offset.bottom || 0);
+
+    return {
+        x: Math.max(0, Math.round(nextLeft)),
+        y: Math.max(0, Math.round(nextTop)),
+        width: Math.max(1, Math.round(nextRight - nextLeft)),
+        height: Math.max(1, Math.round(nextBottom - nextTop))
+    };
+};
+
+const toClipRect = (bounds, padding = 0) => {
+    const left = Math.max(0, Math.floor(bounds.left - padding));
+    const top = Math.max(0, Math.floor(bounds.top - padding));
+    const right = Math.ceil(bounds.right + padding);
+    const bottom = Math.ceil(bounds.bottom + padding);
+
+    return {
+        x: left,
+        y: top,
+        width: Math.max(1, right - left),
+        height: Math.max(1, bottom - top)
+    };
+};
+
+const getModelBounds = (boxModel) => {
+    const border = boxModel.model.border;
+    const xs = [border[0], border[2], border[4], border[6]];
+    const ys = [border[1], border[3], border[5], border[7]];
+
+    return {
+        left: Math.min(...xs),
+        top: Math.min(...ys),
+        right: Math.max(...xs),
+        bottom: Math.max(...ys)
+    };
+};
+
+const getDocumentNodeId = async (session) => {
+    const { root } = await session.send('DOM.getDocument', { depth: 0 });
+    return root.nodeId;
+};
+
+const querySelectorNodeId = async (session, selector) => {
+    const documentNodeId = await getDocumentNodeId(session);
+    const result = await session.send('DOM.querySelector', {
+        nodeId: documentNodeId,
+        selector
+    });
+
+    return result.nodeId || null;
+};
+
+const getSelectorBounds = async (session, selector) => {
+    const nodeId = await querySelectorNodeId(session, selector);
+
+    if (!nodeId) {
+        return null;
+    }
+
+    const boxModel = await session.send('DOM.getBoxModel', { nodeId });
+    return getModelBounds(boxModel);
+};
+
+const waitForSceneReady = async (session, sceneId, stepIndex) => waitForValue(
+    session,
+    `(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (document.readyState !== 'complete') {
+            return false;
+        }
+
+        if (params.get('captureScene') !== '${sceneId}') {
+            return false;
+        }
+
+        if (Number.parseInt(params.get('captureStep') || '0', 10) !== ${stepIndex}) {
+            return false;
+        }
+
+        return !Array.from(document.images).some((image) => !image.complete);
+    })()`,
+    20000
+);
+
+const resolveClipFromPage = async (session, sceneId, stepIndex, crop) => {
+    const cropJson = JSON.stringify(crop);
+
+    const clipJson = await waitForValue(
+        session,
+        `(() => {
+            const params = new URLSearchParams(window.location.search);
+            if (document.readyState !== 'complete') {
+                return null;
+            }
+
+            if (params.get('captureScene') !== '${sceneId}') {
+                return null;
+            }
+
+            if (Number.parseInt(params.get('captureStep') || '0', 10) !== ${stepIndex}) {
+                return null;
+            }
+
+            if (Array.from(document.images).some((image) => !image.complete)) {
+                return null;
+            }
+
+            const crop = ${cropJson};
+
+            const toClipRect = (rect, padding = 0) => {
+                const left = Math.max(0, Math.floor(rect.left - padding));
+                const top = Math.max(0, Math.floor(rect.top - padding));
+                const right = Math.ceil(rect.right + padding);
+                const bottom = Math.ceil(rect.bottom + padding);
+
+                return {
+                    x: left,
+                    y: top,
+                    width: Math.max(1, right - left),
+                    height: Math.max(1, bottom - top)
+                };
+            };
+
+            const applyEdgeOffset = (clipRect, edgeOffset = {}) => {
+                if (!clipRect) {
+                    return null;
+                }
+
+                const offset = edgeOffset || {};
+                const nextLeft = clipRect.x + (offset.left || 0);
+                const nextTop = clipRect.y + (offset.top || 0);
+                const nextRight = clipRect.x + clipRect.width + (offset.right || 0);
+                const nextBottom = clipRect.y + clipRect.height + (offset.bottom || 0);
+
+                return {
+                    x: Math.max(0, Math.round(nextLeft)),
+                    y: Math.max(0, Math.round(nextTop)),
+                    width: Math.max(1, Math.round(nextRight - nextLeft)),
+                    height: Math.max(1, Math.round(nextBottom - nextTop))
+                };
+            };
+
+            const getSquareElement = ([row, col]) => document.querySelector('[data-square="' + row + '-' + col + '"]');
+
+            if (crop.type === 'inner-board') {
+                const boardGrid = document.querySelector('[data-board-grid="true"]');
+                return boardGrid
+                    ? JSON.stringify(applyEdgeOffset(toClipRect(boardGrid.getBoundingClientRect(), crop.padding || 0), crop.edgeOffset))
+                    : null;
+            }
+
+            if (crop.type === 'board-frame') {
+                const boardFrame = document.querySelector('[data-board-frame="true"]');
+                return boardFrame
+                    ? JSON.stringify(applyEdgeOffset(toClipRect(boardFrame.getBoundingClientRect(), crop.padding || 0), crop.edgeOffset))
+                    : null;
+            }
+
+            if (crop.type === 'squares') {
+                const startSquare = getSquareElement(crop.from);
+                const endSquare = getSquareElement(crop.to);
+
+                if (!startSquare || !endSquare) {
+                    return null;
+                }
+
+                const startRect = startSquare.getBoundingClientRect();
+                const endRect = endSquare.getBoundingClientRect();
+                return JSON.stringify(applyEdgeOffset(
+                    toClipRect({
+                        left: Math.min(startRect.left, endRect.left),
+                        top: Math.min(startRect.top, endRect.top),
+                        right: Math.max(startRect.right, endRect.right),
+                        bottom: Math.max(startRect.bottom, endRect.bottom)
+                    }, crop.padding || 0),
+                    crop.edgeOffset
+                ));
+            }
+
+            return null;
+        })()`,
+        20000
+    );
+
+    return JSON.parse(clipJson);
+};
+
 const parseCliArgs = (argv) => {
     const parsedArgs = {
         outputDir: DEFAULT_OUTPUT_DIR,
@@ -401,27 +597,35 @@ const captureScene = async (session, baseUrl, scene, outputDir, framesDir) => {
         const sceneUrl = `${baseUrl}/?captureMode=1&captureScene=${scene.id}&captureStep=${stepIndex}`;
         await navigate(session, sceneUrl);
 
-        let captureMeta;
-
         try {
-            captureMeta = await waitForValue(
-                session,
-                `(() => {
-                    const params = new URLSearchParams(window.location.search);
-                    return window.__RULE_CAPTURE_READY__
-                        && window.__RULE_CAPTURE__
-                        && window.__RULE_CAPTURE__.clip
-                        && params.get('captureScene') === '${scene.id}'
-                        && Number.parseInt(params.get('captureStep') || '0', 10) === ${stepIndex}
-                        && window.__RULE_CAPTURE__.id === '${scene.id}'
-                        && window.__RULE_CAPTURE__.stepIndex === ${stepIndex}
-                        ? window.__RULE_CAPTURE__
-                        : null;
-                })()`,
-                20000
-            );
+            await waitForSceneReady(session, scene.id, stepIndex);
+            const clip = await resolveClipFromPage(session, scene.id, stepIndex, scene.crop);
+
+            if (!clip) {
+                throw new Error('Unable to resolve a clip rectangle from the rendered DOM.');
+            }
+
+            const frameOutputPath = path.join(framesDir, `${scene.id}-${String(stepIndex).padStart(2, '0')}.png`);
+            await capturePng(session, frameOutputPath, clip);
+            framePaths.push(frameOutputPath);
         } catch (error) {
             const debugState = await evaluateJson(session, `(() => ({
+                startRect: (() => {
+                    const element = document.querySelector('[data-square="${scene.crop?.from?.[0] ?? 'x'}-${scene.crop?.from?.[1] ?? 'y'}"]');
+                    if (!element) {
+                        return null;
+                    }
+                    const rect = element.getBoundingClientRect();
+                    return [rect.left, rect.top, rect.right, rect.bottom];
+                })(),
+                endRect: (() => {
+                    const element = document.querySelector('[data-square="${scene.crop?.to?.[0] ?? 'x'}-${scene.crop?.to?.[1] ?? 'y'}"]');
+                    if (!element) {
+                        return null;
+                    }
+                    const rect = element.getBoundingClientRect();
+                    return [rect.left, rect.top, rect.right, rect.bottom];
+                })(),
                 href: window.location.href,
                 readyState: document.readyState,
                 captureReady: window.__RULE_CAPTURE_READY__ || false,
@@ -430,14 +634,11 @@ const captureScene = async (session, baseUrl, scene, outputDir, framesDir) => {
                 squareCount: document.querySelectorAll('[data-square]').length,
                 boardFramePresent: Boolean(document.querySelector('[data-board-frame="true"]')),
                 boardGridPresent: Boolean(document.querySelector('[data-board-grid="true"]')),
+                imageCount: document.images.length,
                 bodyText: document.body.innerText.slice(0, 500)
             }))()`);
             throw new Error(`${error.message}\nBrowser debug: ${JSON.stringify(debugState, null, 2)}`);
         }
-
-        const frameOutputPath = path.join(framesDir, `${scene.id}-${String(stepIndex).padStart(2, '0')}.png`);
-        await capturePng(session, frameOutputPath, captureMeta.clip);
-        framePaths.push(frameOutputPath);
     }
 
     const outputPath = path.join(outputDir, scene.outputFile);
@@ -476,6 +677,7 @@ const main = async () => {
         const session = new CdpSession(await getPageWebSocketUrl(debugPort));
         await session.send('Page.enable');
         await session.send('Runtime.enable');
+        await session.send('DOM.enable');
         await session.send('Emulation.setDeviceMetricsOverride', {
             width: 1600,
             height: 1400,
