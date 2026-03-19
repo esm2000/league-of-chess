@@ -306,6 +306,10 @@ def finalize_game_state(old_game_state: GameState, new_game_state: GameState, mo
     
     # Final management and persistence
     utils.manage_game_state(old_game_state, new_game_state)
+    # Use the DB-authoritative version from old_game_state (not the client's
+    # potentially stale version) so the optimistic concurrency check in
+    # perform_game_state_update compares against the actual DB state.
+    new_game_state["version"] = old_game_state.get("version", 0)
     utils.perform_game_state_update(new_game_state, mongo_client, id)
 
     # Log move to game_moves collection (after persistence to avoid phantom entries)
@@ -373,7 +377,7 @@ def simulate_game_update(old_game_state: GameState, new_game_state: GameState) -
             old_game_state, new_game_state, moved_pieces, is_valid, should_increment
         )
 
-        return new_game_state
+        return new_game_state if is_valid else None
     except HTTPException:
         return None
 

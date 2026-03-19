@@ -27,6 +27,8 @@ OPPONENT_SIDE = "white"
 PROMOTION_PIECES = ["queen", "rook", "bishop", "knight"]
 CPU_MOVE_DELAY_SECONDS = 3
 PURCHASABLE_PIECES = {"pawn": 2, "knight": 6, "bishop": 6, "rook": 10}
+MAX_CLAIMS_PER_POLL = 8
+PURCHASE_PROBABILITY = 0.2
 
 
 # ---------------------------------------------------------------------------
@@ -34,16 +36,53 @@ PURCHASABLE_PIECES = {"pawn": 2, "knight": 6, "bishop": 6, "rook": 10}
 # ---------------------------------------------------------------------------
 
 def _place_piece_on_square(board, from_pos, to_pos):
-    """Move piece from one square to another, stacking with neutral monsters."""
+    """Move piece from one square to another, preserving neutral monsters on the target.
+
+    Non-neutral occupants on the target square are replaced; neutrals are kept and
+    stacked with the arriving piece.  This handles empty squares, pure-monster squares,
+    and mixed (enemy + monster) squares correctly.
+    """
     from_r, from_c = from_pos
     to_r, to_c = to_pos
     target = board[to_r][to_c] or []
     moving = board[from_r][from_c] or []
-    if any("neutral" in p.get("type", "") for p in target):
-        board[to_r][to_c] = target + moving
-    else:
-        board[to_r][to_c] = moving
+    neutrals = [p for p in target if "neutral" in p.get("type", "")]
+    board[to_r][to_c] = neutrals + moving if neutrals else moving
     board[from_r][from_c] = None
+
+
+def _apply_move_to_board(board, move, ref_board=None):
+    """Apply a move (castle, capture, or normal) to the board.
+
+    Uses ref_board (the board before this move) to identify the captured piece.
+    Returns the captured piece type string, or None.
+    """
+    from_r, from_c = move["from_pos"]
+    to_r, to_c = move["to_pos"]
+
+    if move["type"] == "castle":
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
+        rook_from, rook_to = _get_castle_rook_positions(to_c)
+        _place_piece_on_square(board, [to_r, rook_from], [to_r, rook_to])
+        return None
+
+    captured_piece_type = None
+    if move["type"] == "capture":
+        cap_r, cap_c = move["capture_at"]
+        source = ref_board or board
+        for piece in source[cap_r][cap_c] or []:
+            if OPPONENT_SIDE in piece.get("type", "") or "neutral" in piece.get("type", ""):
+                captured_piece_type = piece["type"]
+                break
+
+    _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
+
+    if move["type"] == "capture":
+        cap_r, cap_c = move["capture_at"]
+        if [cap_r, cap_c] != [to_r, to_c]:
+            board[cap_r][cap_c] = None
+
+    return captured_piece_type
 
 
 # ---------------------------------------------------------------------------
@@ -130,31 +169,9 @@ def _move_leaves_king_safe(game_state: GameState, move: dict) -> bool:
     old_state["position_in_play"] = move["from_pos"]
 
     new_state = copy.deepcopy(old_state)
-    board = new_state["board_state"]
-
-    from_r, from_c = move["from_pos"]
-    to_r, to_c = move["to_pos"]
-
-    if move["type"] == "castle":
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
-        rook_from, rook_to = _get_castle_rook_positions(to_c)
-        _place_piece_on_square(board, [to_r, rook_from], [to_r, rook_to])
-    elif move["type"] == "capture":
-        cap_r, cap_c = move["capture_at"]
-        captured_piece_type = None
-        for piece in old_state["board_state"][cap_r][cap_c] or []:
-            if OPPONENT_SIDE in piece.get("type", "") or "neutral" in piece.get("type", ""):
-                captured_piece_type = piece["type"]
-                break
-
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
-        if [cap_r, cap_c] != [to_r, to_c]:
-            board[cap_r][cap_c] = None
-
-        if captured_piece_type and "neutral" not in captured_piece_type:
-            new_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
-    else:
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
+    captured = _apply_move_to_board(new_state["board_state"], move, old_state["board_state"])
+    if captured and "neutral" not in captured:
+        new_state["captured_pieces"][CPU_SIDE].append(captured)
 
     result = simulate_game_update(old_state, new_state)
     if result is None:
@@ -247,36 +264,12 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
     select_request = api.GameStateRequest(**select_state)
     game_after_select = api.update_game_state(game_id, select_request, Response(), player=False)
 
-    # Brief delay so the move feels deliberate on the frontend
-    time.sleep(CPU_MOVE_DELAY_SECONDS)
-
     # Step 2: Move the piece on the board
     move_state = copy.deepcopy(game_after_select)
-    board = move_state["board_state"]
-    from_r, from_c = move["from_pos"]
-    to_r, to_c = move["to_pos"]
-
-    if move["type"] == "castle":
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
-        rook_from_col, rook_to_col = _get_castle_rook_positions(to_c)
-        _place_piece_on_square(board, [to_r, rook_from_col], [to_r, rook_to_col])
-    elif move["type"] == "capture":
-        cap_r, cap_c = move["capture_at"]
-        captured_piece_type = None
-        for piece in game_after_select["board_state"][cap_r][cap_c] or []:
-            if OPPONENT_SIDE in piece.get("type", "") or "neutral" in piece.get("type", ""):
-                captured_piece_type = piece["type"]
-                break
-
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
-        if [cap_r, cap_c] != [to_r, to_c]:
-            board[cap_r][cap_c] = None
-
-        # Record capture (neutral monster captures handled by pipeline)
-        if captured_piece_type and "neutral" not in captured_piece_type:
-            move_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
-    else:
-        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
+    captured = _apply_move_to_board(move_state["board_state"], move, game_after_select["board_state"])
+    # Record capture (neutral monster captures handled by pipeline)
+    if captured and "neutral" not in captured:
+        move_state["captured_pieces"][CPU_SIDE].append(captured)
 
     move_request = api.GameStateRequest(**move_state)
     game_after_move = api.update_game_state(game_id, move_request, Response(), player=False)
@@ -376,14 +369,19 @@ def process_game(game_id: str, instance_id: str) -> None:
         # Generate all valid moves and purchase options
         valid_moves = get_all_valid_moves(game_state)
         purchase_moves = _get_purchase_moves(game_state)
-        all_moves = valid_moves + purchase_moves
 
-        if not all_moves:
+        if not valid_moves and not purchase_moves:
             logger.info(f"CPU: No valid moves for game {game_id} (stalemate or checkmate)")
             return
 
-        # Pick a random move
-        chosen_move = random.choice(all_moves)
+        # Prefer board moves; only consider purchases with low probability
+        if valid_moves and (not purchase_moves or random.random() > PURCHASE_PROBABILITY):
+            chosen_move = random.choice(valid_moves)
+        elif purchase_moves:
+            chosen_move = random.choice(purchase_moves)
+        else:
+            chosen_move = random.choice(valid_moves)
+
         logger.info(f"CPU: Playing {chosen_move['type']} from {chosen_move.get('from_pos')} to {chosen_move.get('to_pos')} in game {game_id}")
 
         # Optimistic concurrency check before applying
@@ -392,10 +390,13 @@ def process_game(game_id: str, instance_id: str) -> None:
             logger.info(f"CPU: Game {game_id} was modified by player, skipping")
             return
 
+        # Brief delay so the move feels deliberate on the frontend
+        time.sleep(CPU_MOVE_DELAY_SECONDS)
+
         apply_cpu_move(game_id, game_state, chosen_move)
 
-    except Exception as e:
-        logger.error(f"CPU: Error processing game {game_id}: {e}")
+    except Exception:
+        logger.exception(f"CPU: Error processing game {game_id}")
     finally:
         # Clear CPU claim regardless of outcome
         try:
@@ -419,9 +420,9 @@ def claim_and_process_games(instance_id: str) -> None:
     now = datetime.datetime.now()
     lease_cutoff = now - datetime.timedelta(seconds=CPU_LEASE_TIMEOUT_SECONDS)
 
-    # Claim phase: atomically claim one unclaimed game at a time
+    # Claim phase: atomically claim one unclaimed game at a time (bounded)
     claimed_game_ids = []
-    while True:
+    while len(claimed_game_ids) < MAX_CLAIMS_PER_POLL:
         result = games_collection.find_one_and_update(
             {
                 "turn_count": {"$mod": [2, 1]},  # odd turn = black's turn

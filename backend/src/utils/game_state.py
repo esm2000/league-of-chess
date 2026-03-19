@@ -4,7 +4,7 @@ import copy
 import datetime
 
 from bson.objectid import ObjectId
-from fastapi import Response
+from fastapi import HTTPException, Response
 from pymongo.mongo_client import MongoClient
 
 import src.api as api
@@ -46,11 +46,13 @@ def manage_game_state(old_game_state: GameState, new_game_state: GameState) -> N
 def perform_game_state_update(new_game_state: GameState, mongo_client: MongoClient, game_id: str) -> None:
     """Persist game state to MongoDB with version increment for optimistic concurrency."""
     new_game_state["last_updated"] = datetime.datetime.now()
-    new_game_state["version"] = new_game_state.get("version", 0) + 1
-    query = {"_id": ObjectId(game_id)}
-    new_values = {"$set": new_game_state}
+    expected_version = new_game_state.get("version", 0)
+    new_game_state["version"] = expected_version + 1
+    query = {"_id": ObjectId(game_id), "version": expected_version}
     game_database = mongo_client["game_db"]
-    game_database["games"].update_one(query, new_values)
+    result = game_database["games"].replace_one(query, new_game_state)
+    if result.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Game state was modified concurrently")
 
 
 def clean_possible_moves_and_possible_captures(new_game_state: GameState) -> None:
