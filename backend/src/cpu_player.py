@@ -203,13 +203,13 @@ def get_marked_for_death_moves(game_state: GameState) -> list[dict]:
 
 
 def _has_marked_for_death(game_state: GameState) -> bool:
-    """Check if any black pieces are marked for death."""
-    for row in game_state["board_state"]:
-        for square in row:
-            for piece in square or []:
-                if CPU_SIDE in piece.get("type", "") and piece.get("marked_for_death", False):
-                    return True
-    return False
+    """Check if any non-stunned black pieces are marked for death."""
+    return any(
+        CPU_SIDE in piece.get("type", "") and piece.get("marked_for_death", False) and not piece.get("is_stunned", False)
+        for row in game_state["board_state"]
+        for square in row
+        for piece in square or []
+    )
 
 
 def _get_purchase_moves(game_state: GameState) -> list[dict]:
