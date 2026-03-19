@@ -7,9 +7,9 @@ const RookRules = (props) => {
     const gameState = GameStateContextData()
 
     const imageStyle = {
-        height: props.isMobile ? "22vw": "11vw", 
+        height: props.isMobile ? "31vw": "15.5vw",
         display: "block", 
-        margin: !props.isMobile ? "auto" : null
+        margin: "auto"
     }
 
     return(
@@ -18,21 +18,21 @@ const RookRules = (props) => {
             <p>Move vertically and horizontally</p>
             <p>Movement and capture range scales with game length</p>
             <div style={{display: "flex", flexDirection: props.isMobile ? "column" : "row"}}>
-                <figure>
+                <figure style={{textAlign: "center"}}>
                     <img
                         src={IMAGE_MAP["rookMovementTurn0"]}
                         style={imageStyle}
                     />
                     <figcaption>range at turn 0</figcaption>
                 </figure>
-                <figure>
+                <figure style={{textAlign: "center"}}>
                     <img
                         src={IMAGE_MAP["rookMovementTurn15"]}
                         style={imageStyle}
                     />
                     <figcaption>range at turn 15</figcaption>
                 </figure>
-                <figure>
+                <figure style={{textAlign: "center"}}>
                     <img
                         src={IMAGE_MAP["rookMovementTurn20"]}
                         style={imageStyle}

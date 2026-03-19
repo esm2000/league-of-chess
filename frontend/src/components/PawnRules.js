@@ -17,7 +17,7 @@ const PawnRules = (props) => {
     }
 
     const imageStyle = {
-        height: props.isMobile ? "12vw": "6vw",
+        height: props.isMobile ? "21vw": "10.5vw",
         display: "block", 
         margin: "auto"
     }

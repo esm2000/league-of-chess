@@ -7,7 +7,7 @@ const KnightRules = (props) => {
     const gameState = GameStateContextData()
 
     const imageStyle = {
-        height: props.isMobile ? "15vw": "7.5vw", 
+        height: props.isMobile ? "25.3vw": "12.65vw",
         display: "block", 
         margin: "auto"
     }
