@@ -1,6 +1,6 @@
 # League of Chess - Agent Guide
 
-Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference.
+Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference. See [docs/cpu-eval-research.md](docs/cpu-eval-research.md) for compiled research on chess evaluation algorithms and search (material, PSTs, mobility, alpha-beta, quiescence, tapered eval) adapted for this variant.
 
 ## Tech Stack
 

@@ -245,8 +245,8 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
     - clean up PUT game endpoint for easier readibility and maintainability ✅
 * Finishing touches on frontend
 * Enhance instructions with local database setup ✅
-* AI - https://www.chessprogramming.org/Evaluation#Publications
-    - rudimentary EASY enemy AI (chooses random moves from possible moves)
+* AI - https://www.chessprogramming.org/Evaluation#Publications (see [docs/cpu-eval-research.md](docs/cpu-eval-research.md) for compiled research)
+    - rudimentary EASY enemy AI (chooses random moves from possible moves) ✅
     - ADVANCED enemy AI that plays as well as possible
     - MEDIUM enemy AI
 * Log moves to a `game_moves` collection for full game history and bug report tracing ✅

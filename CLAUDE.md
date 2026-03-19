@@ -1,6 +1,6 @@
 # League of Chess - Agent Guide
 
-Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference.
+Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference. See [docs/cpu-eval-research.md](docs/cpu-eval-research.md) for compiled research on chess evaluation algorithms and search (material, PSTs, mobility, alpha-beta, quiescence, tapered eval) adapted for this variant.
 
 ## Tech Stack
 
@@ -85,4 +85,4 @@ Update CLAUDE.md in the same commit when changing conventions, workflow, or tech
 
 **Keep all agent guide files in sync:** When updating this file, apply the same changes to `AGENTS.md` (Codex) and `GEMINI.md` (Gemini). When updating the roadmap, apply changes to `README.md` as well.
 
-Last Updated: 2026-03-15
+Last Updated: 2026-03-19
