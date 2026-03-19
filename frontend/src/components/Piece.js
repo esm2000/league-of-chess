@@ -19,6 +19,7 @@ const Piece = (props) => {
     const leftPosition = props.col * 3.7 * (isMobile ? 2: 1)
 
     const handlePieceClick = () => {
+        if (gameState.isReplaying) return
         if (props.shopPieceSelected) return
 
         const isNeutralPiecePresent = () => {
@@ -130,6 +131,7 @@ const Piece = (props) => {
     }
 
     const handleSpareButtonClick = () => {
+        if (gameState.isReplaying) return
         const newBoardState = gameState.boardState.map((row, r) => {
             if (r !== props.row) return row;
             return row.map((square, c) => {
@@ -149,6 +151,7 @@ const Piece = (props) => {
     }
 
     const handleCaptureButtonClick = () => {
+        if (gameState.isReplaying) return
         const square = gameState.boardState[props.row][props.col] || []
         const captured = square.filter(piece => snakeToCamel(piece?.type) === props.type).map(piece => piece.type)
         const newCapturedPieces = {
@@ -180,6 +183,7 @@ const Piece = (props) => {
     }
 
     const handleCastleButtonClick = (castleMove) => {
+        if (gameState.isReplaying) return
         const startRow = castleMove[0]
         const kingCol = props.col
         const targetKingCol = castleMove[1]
@@ -216,6 +220,7 @@ const Piece = (props) => {
     }
 
     const handleSurrenderButtonClick = () => {
+        if (gameState.isReplaying) return
         const square = gameState.boardState[props.row][props.col] || []
         const surrendered = square.find(piece => snakeToCamel(piece?.type) === props.type)
         if (!surrendered) return

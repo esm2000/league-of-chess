@@ -64,6 +64,7 @@ const Square = (props) => {
     }
 
     const handleSquareSelectionClick = () => {
+        if (gameState.isReplaying) return
         const newBoardState = [...gameState.boardState]
 
         if (!newBoardState[row][col]?.length) {
@@ -81,7 +82,7 @@ const Square = (props) => {
     }
 
     const handleSquareClick = () => {
-
+        if (gameState.isReplaying) return
         if (positionInPlay?.[0] != null && positionInPlay?.[1] != null) {
             const newBoardState = [...gameState.boardState]
             const newPositionInPlay = [null, null]
