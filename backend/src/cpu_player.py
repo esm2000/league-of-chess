@@ -17,7 +17,7 @@ import src.moves as moves
 from src.database import mongo_client
 from src.log import logger
 from src.types import GameState, MoveResult
-from src.utils.check_checkmate import manage_check_status, trim_king_moves
+from src.utils.check_checkmate import trim_king_moves
 
 
 CPU_POLL_INTERVAL_SECONDS = 3
@@ -25,6 +25,7 @@ CPU_LEASE_TIMEOUT_SECONDS = 20
 CPU_SIDE = "black"
 OPPONENT_SIDE = "white"
 PROMOTION_PIECES = ["queen", "rook", "bishop", "knight"]
+CPU_MOVE_DELAY_SECONDS = 3
 
 
 # ---------------------------------------------------------------------------
@@ -98,33 +99,53 @@ def _get_raw_moves(game_state: GameState) -> list[dict]:
 
 
 def _move_leaves_king_safe(game_state: GameState, move: dict) -> bool:
-    """Return True if applying this move does NOT leave the black king in check."""
-    simulated = copy.deepcopy(game_state)
-    board = simulated["board_state"]
+    """Return True if applying this move does NOT leave the black king in check.
+
+    Runs the full game update pipeline (without DB) so that side effects like
+    adjacent captures, bishop debuffs, neutral monster spawns/attacks, and queen
+    stun are all reflected before evaluating king safety.
+    """
+    from src.utils.game_update_pipeline import simulate_game_update
+
+    # Pretend the select step already happened so the pipeline treats this as a move step
+    old_state = copy.deepcopy(game_state)
+    old_state["position_in_play"] = move["from_pos"]
+
+    new_state = copy.deepcopy(old_state)
+    board = new_state["board_state"]
 
     from_r, from_c = move["from_pos"]
     to_r, to_c = move["to_pos"]
 
     if move["type"] == "castle":
-        # Move king
         board[to_r][to_c] = board[from_r][from_c]
         board[from_r][from_c] = None
-        # Move rook
         rook_from, rook_to = _get_castle_rook_positions(to_c)
         board[to_r][rook_to] = board[to_r][rook_from]
         board[to_r][rook_from] = None
+    elif move["type"] == "capture":
+        cap_r, cap_c = move["capture_at"]
+        captured_piece_type = None
+        for piece in old_state["board_state"][cap_r][cap_c] or []:
+            if OPPONENT_SIDE in piece.get("type", "") or "neutral" in piece.get("type", ""):
+                captured_piece_type = piece["type"]
+                break
+
+        board[to_r][to_c] = board[from_r][from_c]
+        board[from_r][from_c] = None
+        if [cap_r, cap_c] != [to_r, to_c]:
+            board[cap_r][cap_c] = None
+
+        if captured_piece_type and "neutral" not in captured_piece_type:
+            new_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
     else:
         board[to_r][to_c] = board[from_r][from_c]
         board[from_r][from_c] = None
-        if move["type"] == "capture":
-            cap_r, cap_c = move["capture_at"]
-            if [cap_r, cap_c] != [to_r, to_c]:
-                board[cap_r][cap_c] = None
 
-    # Check if black king is in check after this move
-    old_copy = copy.deepcopy(game_state)
-    manage_check_status(old_copy, simulated)
-    return not simulated["check"][CPU_SIDE]
+    result = simulate_game_update(old_state, new_state)
+    if result is None:
+        return False
+    return not result["check"][CPU_SIDE]
 
 
 def _get_castle_rook_positions(king_target_col: int) -> tuple[int, int]:
@@ -185,6 +206,9 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
     select_state["position_in_play"] = move["from_pos"]
     select_request = api.GameStateRequest(**select_state)
     game_after_select = api.update_game_state(game_id, select_request, Response(), player=False)
+
+    # Brief delay so the move feels deliberate on the frontend
+    time.sleep(CPU_MOVE_DELAY_SECONDS)
 
     # Step 2: Move the piece on the board
     move_state = copy.deepcopy(game_after_select)

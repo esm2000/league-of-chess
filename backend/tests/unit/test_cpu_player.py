@@ -77,12 +77,13 @@ def test_get_all_valid_moves_excludes_stunned_pieces():
 
 def test_get_all_valid_moves_filters_moves_leaving_king_in_check():
     """A pinned piece should not be able to move if it exposes the king to check."""
-    # Black king at [0, 0], black pawn at [1, 1], white bishop at [2, 2]
-    # The pawn is pinned — moving it exposes the king to the bishop
+    # Black king at [0, 0], black pawn at [1, 1], white bishop at [4, 4]
+    # The pawn is pinned — moving it exposes the king to the bishop.
+    # Bishop placed far enough that adjacent capture won't remove it.
     game = _make_game(turn_count=1)
     game["board_state"][0][0] = [{"type": "black_king"}]
     game["board_state"][1][1] = [{"type": "black_pawn", "pawn_buff": 0}]
-    game["board_state"][2][2] = [{"type": "white_bishop", "energize_stacks": 0}]
+    game["board_state"][4][4] = [{"type": "white_bishop", "energize_stacks": 0}]
     game["board_state"][7][7] = [{"type": "white_king"}]
 
     valid_moves = get_all_valid_moves(game)
@@ -97,14 +98,14 @@ def test_get_all_valid_moves_king_avoids_unsafe_squares():
     game = _make_game(turn_count=1)
     game["board_state"][0][0] = [{"type": "black_king"}]
     game["board_state"][7][7] = [{"type": "white_king"}]
-    # White rook on row 1 — controls the entire row
-    game["board_state"][1][7] = [{"type": "white_rook"}]
+    # White rook at [1, 2] — within its range-3 limit, controls [1, 0] and [1, 1]
+    game["board_state"][1][2] = [{"type": "white_rook"}]
 
     valid_moves = get_all_valid_moves(game)
 
     king_moves = [m for m in valid_moves if m["from_pos"] == [0, 0]]
     king_destinations = [m["to_pos"] for m in king_moves]
-    # King should NOT move to row 1 (controlled by rook)
+    # King should NOT move to row 1 squares controlled by rook
     assert [1, 0] not in king_destinations
     assert [1, 1] not in king_destinations
     # King should be able to move to [0, 1] (same row, safe)
