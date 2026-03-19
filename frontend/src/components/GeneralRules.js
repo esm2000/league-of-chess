@@ -30,7 +30,7 @@ const GeneralRules = (props) => {
     // for some reason margin auto doesn't work if we 
     // use a class and declare it in index.css
     const imageStyle = {
-        height: props.isMobile ? "15vw": "7.5vw", 
+        height: props.isMobile ? "18.75vw": "9.375vw",
         display: "block", 
         margin: "auto"
     }
@@ -53,13 +53,13 @@ const GeneralRules = (props) => {
             <h4>Neutral Objectives</h4>
             <p>These objectives take the form of neutral pieces that can be captured. This occurs by bringing a piece's hitpoint to 0. Moving a unit adjacent or on top of the neutral piece removes 1 hitpoint. However, pieces that spend more than 1 turn adjacent or on top of a neutral piece are immediately destroyed.</p>
             <div style={{display:"flex"}}>
-                <img 
+                <img
                     src={IMAGE_MAP["neutralCombat1"]}
-                    style={imageStyle}
+                    style={{...imageStyle, height: props.isMobile ? "23.4vw": "11.7vw"}}
                 />
-                <img 
+                <img
                     src={IMAGE_MAP["neutralCombat2"]}
-                    style={imageStyle}
+                    style={{...imageStyle, height: props.isMobile ? "23.4vw": "11.7vw"}}
                 />
             </div>
             <p>If a neutral monster goes 3 turns without losing health, it is instantly healed to full health. Buffs granted by capturing neutral pieces are given to the player who reduces its health to 0.</p>

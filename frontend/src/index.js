@@ -5,6 +5,7 @@ import "./fonts/Retro_Gaming.TTF";
 import "./fonts/04B_30__.TTF"
 
 import { GameStateProvider } from './context/GameStateContext';
+import { CaptureApp, isCaptureModeEnabled } from './capture/CaptureApp';
 
 import Board from './components/Board';
 import Rules from './components/Rules';
@@ -35,6 +36,6 @@ class App extends React.Component {
   // ========================================
   
   const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(<App />);
+  root.render(isCaptureModeEnabled() ? <CaptureApp /> : <App />);
   
   

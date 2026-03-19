@@ -76,6 +76,16 @@ cd frontend && npm start
 
 Open http://localhost:3000 in your browser.
 
+#### Rule Asset Capture
+
+Rule screenshots and GIFs can be regenerated from deterministic capture scenes instead of manual screenshots:
+
+```bash
+cd frontend && npm run capture:rules
+```
+
+See [docs/rule-asset-capture.md](docs/rule-asset-capture.md) for scene previews, crop-region behavior, and output options.
+
 ### Unit Tests
 
 To run unit tests navigate to root directory of folder and run the following in your terminal
@@ -207,7 +217,7 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
 * pawn exchange ✅
 * visual cue for a player being able to go again ✅
 * visual cue for turn being skipped (this might be optional since pieces themselves are stunned and user should be able to parse that all their pieces are stunned and king can't move while CPU goes) ✅
-* redo assets for rules
+* redo assets for rules ✅
 
 ##### Backend 
 * MongoDB database  ✅
@@ -239,8 +249,8 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
     - rudimentary EASY enemy AI (chooses random moves from possible moves)
     - ADVANCED enemy AI that plays as well as possible
     - MEDIUM enemy AI
-* Log moves to a `game_moves` collection for full game history and bug report tracing
-* provide mechanism for user bug reports (frontend sends game id and user feedback to backend and backend records info)
+* Log moves to a `game_moves` collection for full game history and bug report tracing ✅
+* provide mechanism for user bug reports (frontend sends game id and user feedback to backend and backend records info) ✅
 
 ##### Production-Ready Development
 * Restructure project for deployment ✅

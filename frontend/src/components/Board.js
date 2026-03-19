@@ -77,22 +77,28 @@ const Board = () => {
     }
 
     return(
-        <div style={isMobile ? {display: "block", margin: "auto"}: null}>
+        <div
+            data-board-root="true"
+            style={isMobile ? {display: "block", margin: "auto"}: null}
+        >
             <div style={{ marginBottom: `${isMobile ? 2 : 1}vw` }}>
                 <CapturedPieces
                     side={PLAYERS[1]}
                 />
             </div>
-            <div style={{
-                display: 'inline-block',
-                backgroundColor: FRAME_BG_COLOR,
-                border: `${borderSize}vw solid ${FRAME_BORDER_COLOR}`,
-                padding: `${gutterSize * 0.5}vw ${gutterSize}vw ${gutterSize}vw ${gutterSize}vw`,
-                boxSizing: 'content-box',
-                position: 'relative',
-                imageRendering: 'pixelated',
-                boxShadow: `inset ${bevelSize}vw ${bevelSize}vw 0 ${FRAME_BEVEL_LIGHT}, inset -${bevelSize}vw -${bevelSize}vw 0 ${FRAME_BEVEL_DARK}`,
-            }}>
+            <div
+                data-board-frame="true"
+                style={{
+                    display: 'inline-block',
+                    backgroundColor: FRAME_BG_COLOR,
+                    border: `${borderSize}vw solid ${FRAME_BORDER_COLOR}`,
+                    padding: `${gutterSize * 0.5}vw ${gutterSize}vw ${gutterSize}vw ${gutterSize}vw`,
+                    boxSizing: 'content-box',
+                    position: 'relative',
+                    imageRendering: 'pixelated',
+                    boxShadow: `inset ${bevelSize}vw ${bevelSize}vw 0 ${FRAME_BEVEL_LIGHT}, inset -${bevelSize}vw -${bevelSize}vw 0 ${FRAME_BEVEL_DARK}`,
+                }}
+            >
                 {/* Row labels (8-1) in the left gutter */}
                 <div style={{
                     position: 'absolute',
@@ -122,10 +128,13 @@ const Board = () => {
                     ))}
                 </div>
                 {/* The board */}
-                <div style={{
-                    position: 'relative',
-                    outline: `${isMobile ? 0.2 : 0.1}vw solid ${FRAME_BEVEL_DARK}`,
-                }}>
+                <div
+                    data-board-grid="true"
+                    style={{
+                        position: 'relative',
+                        outline: `${isMobile ? 0.2 : 0.1}vw solid ${FRAME_BEVEL_DARK}`,
+                    }}
+                >
                 <Background 
                     possibleCaptures={possibleCaptures}
                     shopPieceSelected={shopPieceSelected}

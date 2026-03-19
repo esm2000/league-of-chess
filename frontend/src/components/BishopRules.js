@@ -31,13 +31,11 @@ const BishopRules = (props) => {
                     style={imageStyle}
                 />
             </div>
-            <ul>
-                <li>at 100 stacks, the next capture action can now capture other pieces by landing on any sqaure adjacently diagonal to opponent's piece</li>
-                <img
-                    src={IMAGE_MAP["bishopEnergizedCapture"]}
-                    style={{...imageStyle, marginTop: props.isMobile ? "2vw": "1vw"}}
-                />
-            </ul>
+            <p>At 100 stacks, the next capture action can now capture other pieces by landing on any square adjacently diagonal to opponent's piece</p>
+            <img
+                src={IMAGE_MAP["bishopEnergizedCapture"]}
+                style={{...imageStyle, marginTop: props.isMobile ? "2vw": "1vw"}}
+            />
             <p>Threatening to capture a piece applies a debuff at the end of a bishops's turn to that piece. On third hit of debuff, a bishop may immediately capture the enemy piece</p>
             <img
                 src={IMAGE_MAP["bishopDebuffEx"]}
