@@ -26,6 +26,24 @@ CPU_SIDE = "black"
 OPPONENT_SIDE = "white"
 PROMOTION_PIECES = ["queen", "rook", "bishop", "knight"]
 CPU_MOVE_DELAY_SECONDS = 3
+PURCHASABLE_PIECES = {"pawn": 2, "knight": 6, "bishop": 6, "rook": 10}
+
+
+# ---------------------------------------------------------------------------
+# Board helpers
+# ---------------------------------------------------------------------------
+
+def _place_piece_on_square(board, from_pos, to_pos):
+    """Move piece from one square to another, stacking with neutral monsters."""
+    from_r, from_c = from_pos
+    to_r, to_c = to_pos
+    target = board[to_r][to_c] or []
+    moving = board[from_r][from_c] or []
+    if any("neutral" in p.get("type", "") for p in target):
+        board[to_r][to_c] = target + moving
+    else:
+        board[to_r][to_c] = moving
+    board[from_r][from_c] = None
 
 
 # ---------------------------------------------------------------------------
@@ -118,11 +136,9 @@ def _move_leaves_king_safe(game_state: GameState, move: dict) -> bool:
     to_r, to_c = move["to_pos"]
 
     if move["type"] == "castle":
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
         rook_from, rook_to = _get_castle_rook_positions(to_c)
-        board[to_r][rook_to] = board[to_r][rook_from]
-        board[to_r][rook_from] = None
+        _place_piece_on_square(board, [to_r, rook_from], [to_r, rook_to])
     elif move["type"] == "capture":
         cap_r, cap_c = move["capture_at"]
         captured_piece_type = None
@@ -131,16 +147,14 @@ def _move_leaves_king_safe(game_state: GameState, move: dict) -> bool:
                 captured_piece_type = piece["type"]
                 break
 
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
         if [cap_r, cap_c] != [to_r, to_c]:
             board[cap_r][cap_c] = None
 
         if captured_piece_type and "neutral" not in captured_piece_type:
             new_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
     else:
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
 
     result = simulate_game_update(old_state, new_state)
     if result is None:
@@ -181,6 +195,29 @@ def _has_marked_for_death(game_state: GameState) -> bool:
     return False
 
 
+def _get_purchase_moves(game_state: GameState) -> list[dict]:
+    """Generate purchase options for affordable pieces on empty squares in rows 0-3."""
+    gold = game_state["gold_count"].get(CPU_SIDE, 0)
+    if gold < 2:
+        return []
+
+    purchases = []
+    for piece_name, cost in PURCHASABLE_PIECES.items():
+        if cost > gold:
+            continue
+        piece_type = f"{CPU_SIDE}_{piece_name}"
+        for row in range(4):
+            for col in range(8):
+                if game_state["board_state"][row][col] is None:
+                    purchases.append({
+                        "type": "purchase",
+                        "piece_type": piece_type,
+                        "to_pos": [row, col],
+                        "cost": cost,
+                    })
+    return purchases
+
+
 def _is_pawn_promotion_needed(game_state: GameState) -> bool:
     """Check if a black pawn is on row 7 (promotion rank for black)."""
     for col in range(8):
@@ -201,6 +238,9 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
     if move["type"] == "sacrifice":
         return _apply_sacrifice(game_id, game_state, move)
 
+    if move["type"] == "purchase":
+        return _apply_purchase(game_id, game_state, move)
+
     # Step 1: Select the piece (set position_in_play)
     select_state = copy.deepcopy(game_state)
     select_state["position_in_play"] = move["from_pos"]
@@ -217,15 +257,10 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
     to_r, to_c = move["to_pos"]
 
     if move["type"] == "castle":
-        # Move king
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
-        # Move rook
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
         rook_from_col, rook_to_col = _get_castle_rook_positions(to_c)
-        board[to_r][rook_to_col] = board[to_r][rook_from_col]
-        board[to_r][rook_from_col] = None
+        _place_piece_on_square(board, [to_r, rook_from_col], [to_r, rook_to_col])
     elif move["type"] == "capture":
-        # Get captured piece type before overwriting
         cap_r, cap_c = move["capture_at"]
         captured_piece_type = None
         for piece in game_after_select["board_state"][cap_r][cap_c] or []:
@@ -233,24 +268,15 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
                 captured_piece_type = piece["type"]
                 break
 
-        # Move piece
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
-
-        # Clear capture position if different from destination (en passant)
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
         if [cap_r, cap_c] != [to_r, to_c]:
             board[cap_r][cap_c] = None
 
-        # Record capture
-        if captured_piece_type:
-            if "neutral" in captured_piece_type:
-                pass  # neutral monster captures handled by pipeline
-            else:
-                move_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
+        # Record capture (neutral monster captures handled by pipeline)
+        if captured_piece_type and "neutral" not in captured_piece_type:
+            move_state["captured_pieces"][CPU_SIDE].append(captured_piece_type)
     else:
-        # Normal move
-        board[to_r][to_c] = board[from_r][from_c]
-        board[from_r][from_c] = None
+        _place_piece_on_square(board, [from_r, from_c], [to_r, to_c])
 
     move_request = api.GameStateRequest(**move_state)
     game_after_move = api.update_game_state(game_id, move_request, Response(), player=False)
@@ -277,6 +303,22 @@ def _apply_sacrifice(game_id: str, game_state: GameState, move: dict) -> dict:
 
     sacrifice_request = api.GameStateRequest(**sacrifice_state)
     return api.update_game_state(game_id, sacrifice_request, Response(), player=False)
+
+
+def _apply_purchase(game_id: str, game_state: GameState, move: dict) -> dict:
+    """Place a purchased piece on the board and send through the pipeline."""
+    import src.api as api
+
+    purchase_state = copy.deepcopy(game_state)
+    to_r, to_c = move["to_pos"]
+    new_piece = {"type": move["piece_type"]}
+    if "bishop" in move["piece_type"]:
+        new_piece["energize_stacks"] = 0
+    if "pawn" in move["piece_type"]:
+        new_piece["pawn_buff"] = 0
+    purchase_state["board_state"][to_r][to_c] = [new_piece]
+    purchase_request = api.GameStateRequest(**purchase_state)
+    return api.update_game_state(game_id, purchase_request, Response(), player=False)
 
 
 def _apply_pawn_promotion(game_id: str, game_state: GameState) -> dict:
@@ -325,14 +367,23 @@ def process_game(game_id: str, instance_id: str) -> None:
                 apply_cpu_move(game_id, game_state, chosen)
                 return
 
-        # Generate all valid moves
+        # Handle pre-existing pawn on promotion rank
+        if _is_pawn_promotion_needed(game_state):
+            logger.info(f"CPU: Completing pawn promotion in game {game_id}")
+            _apply_pawn_promotion(game_id, game_state)
+            return
+
+        # Generate all valid moves and purchase options
         valid_moves = get_all_valid_moves(game_state)
-        if not valid_moves:
+        purchase_moves = _get_purchase_moves(game_state)
+        all_moves = valid_moves + purchase_moves
+
+        if not all_moves:
             logger.info(f"CPU: No valid moves for game {game_id} (stalemate or checkmate)")
             return
 
         # Pick a random move
-        chosen_move = random.choice(valid_moves)
+        chosen_move = random.choice(all_moves)
         logger.info(f"CPU: Playing {chosen_move['type']} from {chosen_move.get('from_pos')} to {chosen_move.get('to_pos')} in game {game_id}")
 
         # Optimistic concurrency check before applying
