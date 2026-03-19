@@ -28,6 +28,7 @@ PROMOTION_PIECES = ["queen", "rook", "bishop", "knight"]
 CPU_MOVE_DELAY_SECONDS = 3
 PURCHASABLE_PIECES = {"pawn": 2, "knight": 6, "bishop": 6, "rook": 10}
 MAX_CLAIMS_PER_POLL = 8
+MAX_CPU_WORKERS = 4
 PURCHASE_PROBABILITY = 0.2
 
 
@@ -452,7 +453,7 @@ def claim_and_process_games(instance_id: str) -> None:
     logger.info(f"CPU: Claimed {len(claimed_game_ids)} game(s) for processing")
 
     # Process phase: fan out to thread pool
-    with ThreadPoolExecutor(max_workers=min(len(claimed_game_ids), 4)) as pool:
+    with ThreadPoolExecutor(max_workers=min(len(claimed_game_ids), MAX_CPU_WORKERS)) as pool:
         futures = [pool.submit(process_game, gid, instance_id) for gid in claimed_game_ids]
         for future in futures:
             try:
