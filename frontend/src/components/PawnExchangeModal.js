@@ -7,6 +7,7 @@ const PawnExchangeModal = (props) => {
     const isMobile = useIsMobile()
 
     const handleSelection = (pieceType) => {
+        if (gameState.isReplaying) return
         const newBoardState = [...gameState.boardState]
         const [row, col] = props.pawnPosition
         const square = [...(newBoardState[row][col] || [])]
