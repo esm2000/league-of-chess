@@ -20,12 +20,12 @@ from src.types import GameState, MoveResult
 from src.utils.check_checkmate import trim_king_moves
 
 
-CPU_POLL_INTERVAL_SECONDS = 3
+CPU_POLL_INTERVAL_SECONDS = 1.5
 CPU_LEASE_TIMEOUT_SECONDS = 20
 CPU_SIDE = "black"
 OPPONENT_SIDE = "white"
 PROMOTION_PIECES = ["queen", "rook", "bishop", "knight"]
-CPU_MOVE_DELAY_SECONDS = 3
+CPU_MOVE_DELAY_SECONDS = 0.75
 PURCHASABLE_PIECES = {"pawn": 2, "knight": 6, "bishop": 6, "rook": 10}
 MAX_CLAIMS_PER_POLL = 8
 MAX_CPU_WORKERS = 4
