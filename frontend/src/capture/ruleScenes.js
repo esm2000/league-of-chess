@@ -74,12 +74,13 @@ const squareRegion = (from, to, padding = 0, edgeOffset = null) => ({
     from,
     to,
     padding,
-    edgeOffset
+    edgeOffset: { top: 1, left: 1, right: -1, bottom: -1, ...(edgeOffset || {}) }
 })
 
 const boardCrop = (padding = 0) => ({
     type: 'inner-board',
-    padding
+    padding,
+    edgeOffset: { top: 1, left: 1, right: -1, bottom: -1 }
 })
 
 const createStartingBoardWithBlackAdvance = () => {
@@ -282,7 +283,7 @@ const RULE_SCENES = [
     ),
     createStaticScene(
         'knight_limits',
-        squareRegion([3, 0], [6, 3], 0, { top: 14, bottom: 14 }),
+        squareRegion([3, 0], [6, 3]),
         createSceneState({
             boardState: placePieces([
                 { position: [5, 2], pieces: createPiece('white_knight') },
