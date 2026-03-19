@@ -63,7 +63,7 @@ def clean_possible_moves_and_possible_captures(new_game_state: GameState) -> Non
 
 def prevent_client_side_updates_to_graveyard(old_game_state: GameState, new_game_state: GameState) -> None:
     """Overwrite client-submitted graveyard with the server's authoritative copy."""
-    new_game_state["graveyard"] = old_game_state["graveyard"]
+    new_game_state["graveyard"] = list(old_game_state["graveyard"])
 
 
 def record_moved_pieces_this_turn(new_game_state: GameState, moved_pieces: list[MovedPiece]) -> None:

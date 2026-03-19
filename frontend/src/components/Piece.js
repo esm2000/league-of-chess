@@ -339,7 +339,8 @@ const Piece = (props) => {
                     display: 'flex',
                     alignItems: 'center',
                     top: `${topPosition + (3.25 * (isMobile ? 2: 1))}vw`,
-                    left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`
+                    left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`,
+                    pointerEvents: 'none'
                 }}>
                     <progress
                         className={className}
@@ -374,7 +375,8 @@ const Piece = (props) => {
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.8))',
-                        fontSize: isMobile ? '2.4vw': '0.8vw'
+                        fontSize: isMobile ? '2.4vw': '0.8vw',
+                        pointerEvents: 'none'
                     }}
                 >
                     {props.energizeStacks}
@@ -390,7 +392,8 @@ const Piece = (props) => {
                             width: isMobile ? '2.2vw': '0.7vw',
                             height: isMobile ? '2.2vw': '0.7vw',
                             top: `${topPosition + (isMobile ? 5.5 : 2.75)}vw`,
-                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 2.8 : 1))}vw`
+                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 2.8 : 1))}vw`,
+                            pointerEvents: 'none'
                         }}
                     />);
                 }): null
@@ -470,7 +473,8 @@ const Piece = (props) => {
                             width: isMobile ? '2.8vw': '0.9vw',
                             height: isMobile ? '2.8vw': '0.9vw',
                             top: `${topPosition}vw`,
-                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 3 : 1))}vw`
+                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 3 : 1))}vw`,
+                            pointerEvents: 'none'
                         }}
                     />);
                 }): null
