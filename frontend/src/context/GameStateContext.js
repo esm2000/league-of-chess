@@ -107,21 +107,14 @@ export function GameStateProvider({children}) {
             return response.json();
         })
         .then(jsonResponse => {
-            const converted = convertKeysToCamelCase(jsonResponse)
-            const currentState = gameStateRef.current
-            if (currentState && !currentState.initialState &&
-                currentState.lastUpdated !== converted.lastUpdated) {
-                stateHistory.current = [...stateHistory.current.slice(-1), currentState]
-            }
             const parsedJsonResponse = {
-                ...converted,
+                ...convertKeysToCamelCase(jsonResponse),
                 updateGameState: updateGameState,
                 restartGame: restartGame,
                 startReplay: startReplay,
                 isReplaying: false,
-                hasReplayHistory: stateHistory.current.length > 0
+                hasReplayHistory: jsonResponse["turn_count"] > 1
             }
-            gameStateRef.current = parsedJsonResponse
             setGameState(parsedJsonResponse)
             sessionStorage.setItem("lastUpdated", parsedJsonResponse["lastUpdated"])
         })
@@ -134,31 +127,38 @@ export function GameStateProvider({children}) {
 
     const fetchInProgress = useRef(false)
     const fetchGeneration = useRef(0)
-    const stateHistory = useRef([])
     const isReplayingRef = useRef(false)
     const replayIntervalRef = useRef(null)
-    const gameStateRef = useRef(gameState)
 
     const startReplay = () => {
-        if (isReplayingRef.current || stateHistory.current.length === 0) return
-        isReplayingRef.current = true
-        const realCurrentState = gameStateRef.current
-        const sequence = [...stateHistory.current, realCurrentState]
+        if (isReplayingRef.current) return
+        const gameStateId = sessionStorage.getItem("gameStateId")
+        if (!gameStateId) return
 
-        setGameState({ ...sequence[0], updateGameState, restartGame, isReplaying: true, startReplay, hasReplayHistory: true })
+        fetch(`${BASE_API_URL}/api/game/${gameStateId}/replay`)
+            .then(response => response.json())
+            .then(states => {
+                if (!states.length) return
+                const sequence = states.map(s => convertKeysToCamelCase(s))
+                isReplayingRef.current = true
 
-        let stepIndex = 1
-        replayIntervalRef.current = setInterval(() => {
-            if (stepIndex >= sequence.length) {
-                clearInterval(replayIntervalRef.current)
-                replayIntervalRef.current = null
-                isReplayingRef.current = false
-                setGameState({ ...realCurrentState, isReplaying: false, startReplay, updateGameState, restartGame, hasReplayHistory: stateHistory.current.length > 0 })
-                return
-            }
-            setGameState({ ...sequence[stepIndex], updateGameState, restartGame, isReplaying: true, startReplay, hasReplayHistory: true })
-            stepIndex++
-        }, 1250)
+                setGameState(prev => ({ ...sequence[0], updateGameState, restartGame, startReplay, isReplaying: true, hasReplayHistory: true }))
+
+                let stepIndex = 1
+                replayIntervalRef.current = setInterval(() => {
+                    if (stepIndex >= sequence.length) {
+                        clearInterval(replayIntervalRef.current)
+                        replayIntervalRef.current = null
+                        isReplayingRef.current = false
+                        // Restore current game state by re-fetching
+                        fetchGameState()
+                        return
+                    }
+                    setGameState(prev => ({ ...sequence[stepIndex], updateGameState, restartGame, startReplay, isReplaying: true, hasReplayHistory: true }))
+                    stepIndex++
+                }, 1250)
+            })
+            .catch(e => console.log('Replay fetch error:', e))
     }
 
     const fetchGameState = () => {
@@ -191,21 +191,14 @@ export function GameStateProvider({children}) {
             } else {
                 console.log(`GET Game ${result["id"]}`)
             }
-            const converted = convertKeysToCamelCase(result)
-            const currentState = gameStateRef.current
-            if (currentState && !currentState.initialState &&
-                currentState.lastUpdated !== converted.lastUpdated) {
-                stateHistory.current = [...stateHistory.current.slice(-1), currentState]
-            }
             const parsedResult = {
-                ...converted,
+                ...convertKeysToCamelCase(result),
                 updateGameState: updateGameState,
                 restartGame: restartGame,
                 startReplay: startReplay,
                 isReplaying: false,
-                hasReplayHistory: stateHistory.current.length > 0
+                hasReplayHistory: result["turn_count"] > 1
             }
-            gameStateRef.current = parsedResult
             setGameState(parsedResult)
             sessionStorage.setItem("gameStateId", parsedResult["id"])
             sessionStorage.setItem("lastUpdated", parsedResult["lastUpdated"])
@@ -223,17 +216,14 @@ export function GameStateProvider({children}) {
             replayIntervalRef.current = null
         }
         isReplayingRef.current = false
-        stateHistory.current = []
         fetchGeneration.current += 1
         sessionStorage.removeItem("gameStateId")
         sessionStorage.removeItem("lastUpdated")
-        const initialState = {
+        setGameState({
             ...createInitialGameState(),
             updateGameState, restartGame, startReplay,
             isReplaying: false, hasReplayHistory: false
-        }
-        gameStateRef.current = initialState
-        setGameState(initialState)
+        })
         fetchInProgress.current = false
         fetchGameState()
     }
@@ -241,7 +231,7 @@ export function GameStateProvider({children}) {
     useEffect(() => {
         fetchGameState()
         
-        const interval = setInterval(() => fetchGameState(), 3000)
+        const interval = setInterval(() => fetchGameState(), 1000)
         // when component is not being rendered stop refresh
         return () => {
             clearInterval(interval)

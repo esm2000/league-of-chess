@@ -130,6 +130,18 @@ def update_game_state(id: str, state: GameStateRequest, response: Response, play
     return retrieve_game_state(id, response)
 
 
+@router.get("/game/{id}/replay", status_code=200)
+def get_game_replay(id: str, response: Response) -> list:
+    """Return the last 2 completed turns of state snapshots for replay."""
+    from src.utils.game_state import get_replay_states
+    game_database = mongo_client["game_db"]
+    game_state = game_database["games"].find_one({"_id": ObjectId(id)})
+    if not game_state:
+        response.status_code = 404
+        return []
+    return get_replay_states(id, mongo_client)
+
+
 class BugReportRequest(BaseModel):
     game_id: str
     turn: int

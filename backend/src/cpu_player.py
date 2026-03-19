@@ -265,6 +265,9 @@ def apply_cpu_move(game_id: str, game_state: GameState, move: dict) -> dict:
     select_request = api.GameStateRequest(**select_state)
     game_after_select = api.update_game_state(game_id, select_request, Response(), player=False)
 
+    # Pause so the frontend can show which piece the CPU selected
+    time.sleep(CPU_MOVE_DELAY_SECONDS)
+
     # Step 2: Move the piece on the board
     move_state = copy.deepcopy(game_after_select)
     captured = _apply_move_to_board(move_state["board_state"], move, game_after_select["board_state"])
@@ -390,9 +393,6 @@ def process_game(game_id: str, instance_id: str) -> None:
         if current and current.get("version", 0) != version_before:
             logger.info(f"CPU: Game {game_id} was modified by player, skipping")
             return
-
-        # Brief delay so the move feels deliberate on the frontend
-        time.sleep(CPU_MOVE_DELAY_SECONDS)
 
         apply_cpu_move(game_id, game_state, chosen_move)
 
