@@ -109,8 +109,23 @@ const waitForHttpOk = async (url, timeoutMs) => {
     throw new Error(`Timed out waiting for ${url}.`);
 };
 
+const findAnyPython = () => {
+    for (const candidatePath of ['python3', 'python', ...CANDIDATE_PYTHON_PATHS]) {
+        if (candidatePath.includes(path.sep) && !existsSync(candidatePath)) {
+            continue;
+        }
+
+        const result = spawnSync(candidatePath, ['--version'], { stdio: 'ignore' });
+        if (result.status === 0) {
+            return candidatePath;
+        }
+    }
+
+    throw new Error('No Python executable was found for the static server.');
+};
+
 const startStaticServer = async (port) => {
-    const serverProcess = spawn(findPythonExecutable(), ['-m', 'http.server', String(port), '--bind', '127.0.0.1'], {
+    const serverProcess = spawn(findAnyPython(), ['-m', 'http.server', String(port), '--bind', '127.0.0.1'], {
         cwd: BUILD_DIR,
         stdio: 'ignore'
     });
@@ -411,11 +426,11 @@ const ensureBuildExists = async (skipBuild) => {
     await runCommand('npm', ['run', 'build-local-dev']);
 };
 
-const renderGif = async (outputPath, frameDelayMs, framePaths) => {
-    await runCommand(findPythonExecutable(), [PYTHON_GIF_SCRIPT, outputPath, String(frameDelayMs), ...framePaths]);
+const renderGif = async (pythonExecutable, outputPath, frameDelayMs, framePaths) => {
+    await runCommand(pythonExecutable, [PYTHON_GIF_SCRIPT, outputPath, String(frameDelayMs), ...framePaths]);
 };
 
-const captureScene = async (session, baseUrl, scene, outputDir, framesDir) => {
+const captureScene = async (session, baseUrl, scene, outputDir, framesDir, pythonExecutable) => {
     const framePaths = [];
 
     for (let stepIndex = 0; stepIndex < scene.stepCount; stepIndex += 1) {
@@ -473,7 +488,7 @@ const captureScene = async (session, baseUrl, scene, outputDir, framesDir) => {
         return outputPath;
     }
 
-    await renderGif(outputPath, scene.frameDelayMs, framePaths);
+    await renderGif(pythonExecutable, outputPath, scene.frameDelayMs, framePaths);
     return outputPath;
 };
 
@@ -520,8 +535,11 @@ const main = async () => {
 
         frameTempDir = await mkdtemp(path.join(os.tmpdir(), 'league-of-chess-rule-frames-'));
 
+        const needsGif = sceneList.some((scene) => scene.format === 'gif');
+        const pythonExecutable = needsGif ? findPythonExecutable() : null;
+
         for (const scene of sceneList) {
-            const outputPath = await captureScene(session, baseUrl, scene, args.outputDir, frameTempDir);
+            const outputPath = await captureScene(session, baseUrl, scene, args.outputDir, frameTempDir, pythonExecutable);
             process.stdout.write(`Captured ${scene.id} -> ${outputPath}\n`);
         }
 
