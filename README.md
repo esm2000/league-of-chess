@@ -249,8 +249,8 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
     - rudimentary EASY enemy AI (chooses random moves from possible moves)
     - ADVANCED enemy AI that plays as well as possible
     - MEDIUM enemy AI
-* Log moves to a `game_moves` collection for full game history and bug report tracing
-* provide mechanism for user bug reports (frontend sends game id and user feedback to backend and backend records info)
+* Log moves to a `game_moves` collection for full game history and bug report tracing ✅
+* provide mechanism for user bug reports (frontend sends game id and user feedback to backend and backend records info) ✅
 
 ##### Production-Ready Development
 * Restructure project for deployment ✅
