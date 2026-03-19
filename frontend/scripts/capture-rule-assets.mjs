@@ -125,7 +125,12 @@ const CANDIDATE_BROWSER_PATHS = [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'
+    '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium'
 ].filter(Boolean);
 
 const findBrowserExecutable = () => {
