@@ -1,6 +1,6 @@
 # Rule Asset Capture
 
-This branch includes a branch-local rule asset capture workflow for regenerating rule screenshots and GIFs from deterministic board scenes instead of manual browser captures.
+Rule asset capture workflow for regenerating rule screenshots and GIFs from deterministic board scenes instead of manual browser captures.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ cd frontend
 npm run capture:rules
 ```
 
-By default, outputs are written to `frontend/src/assets/rules/generated/`.
+By default, outputs are written to `frontend/src/assets/rules/`.
 
 Useful flags:
 

@@ -12,7 +12,7 @@ import { spawn, spawnSync } from 'node:child_process';
 const FRONTEND_DIR = path.resolve(process.cwd());
 const PROJECT_ROOT = path.resolve(FRONTEND_DIR, '..');
 const BUILD_DIR = path.join(FRONTEND_DIR, 'build');
-const DEFAULT_OUTPUT_DIR = path.join(FRONTEND_DIR, 'src', 'assets', 'rules', 'generated');
+const DEFAULT_OUTPUT_DIR = path.join(FRONTEND_DIR, 'src', 'assets', 'rules');
 const PYTHON_GIF_SCRIPT = path.join(FRONTEND_DIR, 'scripts', 'build_rule_gif.py');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
