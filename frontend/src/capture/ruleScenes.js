@@ -102,42 +102,60 @@ const RULE_SCENES = [
     ),
     createStaticScene(
         'black_start',
-        squareRegion([0, 1], [3, 5]),
+        squareRegion([0, 0], [2, 7]),
         createSceneState({
             boardState: createStartingBoardWithBlackAdvance()
         })
     ),
     createAnimatedScene(
         'neutral_combat1',
-        squareRegion([3, 5], [7, 7], 8),
+        squareRegion([3, 4], [7, 7], 8, { right: 40 }),
         [
+            createSceneState({
+                boardState: placePieces([
+                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 5 }) },
+                    { position: [6, 7], pieces: createPiece('white_rook') }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 5 }) },
+                    { position: [6, 7], pieces: createPiece('white_rook') }
+                ]),
+                positionInPlay: [6, 7],
+                possibleMoves: [[5, 7], [4, 7], [7, 7], [6, 6], [6, 5], [6, 4]]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [4, 7], pieces: [createPiece('neutral_dragon', { health: 4 }), createPiece('white_rook')] }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 4 }) }
+                ]),
+                capturedPieces: { white: ['white_rook'], black: [] }
+            })
+        ]
+    ),
+    createAnimatedScene(
+        'neutral_combat2',
+        squareRegion([3, 5], [7, 7], 8, { right: 40 }),
+        [
+            createSceneState({
+                boardState: placePieces([
+                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 5 }) },
+                    { position: [6, 6], pieces: createPiece('white_rook') }
+                ])
+            }),
             createSceneState({
                 boardState: placePieces([
                     { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 5 }) },
                     { position: [6, 6], pieces: createPiece('white_rook') }
                 ]),
                 positionInPlay: [6, 6],
-                possibleMoves: [[5, 6], [4, 6], [6, 7], [6, 5]]
+                possibleMoves: [[5, 6], [4, 6], [3, 6], [7, 6], [6, 5], [6, 4], [6, 3], [6, 7]]
             }),
-            createSceneState({
-                boardState: placePieces([
-                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 4 }) },
-                    { position: [5, 6], pieces: createPiece('white_rook') }
-                ])
-            }),
-            createSceneState({
-                boardState: placePieces([
-                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 3 }) },
-                    { position: [4, 6], pieces: createPiece('white_rook') }
-                ])
-            })
-        ],
-        { frameDelayMs: 600 }
-    ),
-    createAnimatedScene(
-        'neutral_combat2',
-        squareRegion([3, 5], [7, 7], 8),
-        [
             createSceneState({
                 boardState: placePieces([
                     { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 4 }) },
@@ -149,14 +167,8 @@ const RULE_SCENES = [
                     { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 4 }) }
                 ]),
                 capturedPieces: { white: ['white_rook'], black: [] }
-            }),
-            createSceneState({
-                boardState: placePieces([
-                    { position: [4, 7], pieces: createPiece('neutral_dragon', { health: 5 }) }
-                ])
             })
-        ],
-        { frameDelayMs: 700 }
+        ]
     ),
     createAnimatedScene(
         'normal_pawn_movement',
@@ -164,30 +176,55 @@ const RULE_SCENES = [
         [
             createSceneState({
                 boardState: placePieces([
-                    { position: [6, 3], pieces: createPiece('white_pawn') }
-                ]),
-                positionInPlay: [6, 3],
-                possibleMoves: [[5, 3], [4, 3]]
-            }),
-            createSceneState({
-                boardState: placePieces([
-                    { position: [5, 3], pieces: createPiece('white_pawn') }
+                    { position: [7, 2], pieces: createPiece('white_pawn') },
+                    { position: [7, 3], pieces: createPiece('white_pawn') },
+                    { position: [7, 4], pieces: createPiece('white_pawn') }
                 ])
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [5, 3], pieces: createPiece('white_pawn') }
+                    { position: [7, 2], pieces: createPiece('white_pawn') },
+                    { position: [7, 3], pieces: createPiece('white_pawn') },
+                    { position: [7, 4], pieces: createPiece('white_pawn') }
+                ]),
+                positionInPlay: [7, 3],
+                possibleMoves: [[6, 3], [5, 3]]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [7, 2], pieces: createPiece('white_pawn') },
+                    { position: [5, 3], pieces: createPiece('white_pawn') },
+                    { position: [7, 4], pieces: createPiece('white_pawn') }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [7, 2], pieces: createPiece('white_pawn') },
+                    { position: [5, 3], pieces: createPiece('white_pawn') },
+                    { position: [7, 4], pieces: createPiece('white_pawn') }
                 ]),
                 positionInPlay: [5, 3],
                 possibleMoves: [[4, 3]]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [7, 2], pieces: createPiece('white_pawn') },
+                    { position: [4, 3], pieces: createPiece('white_pawn') },
+                    { position: [7, 4], pieces: createPiece('white_pawn') }
+                ])
             })
-        ],
-        { frameDelayMs: 550 }
+        ]
     ),
     createAnimatedScene(
         'normal_pawn_combat',
         squareRegion([4, 2], [7, 5]),
         [
+            createSceneState({
+                boardState: placePieces([
+                    { position: [6, 3], pieces: createPiece('white_pawn') },
+                    { position: [5, 4], pieces: createPiece('black_pawn') }
+                ])
+            }),
             createSceneState({
                 boardState: placePieces([
                     { position: [6, 3], pieces: createPiece('white_pawn') },
@@ -203,8 +240,7 @@ const RULE_SCENES = [
                 ]),
                 capturedPieces: { white: ['black_pawn'], black: [] }
             })
-        ],
-        { frameDelayMs: 650 }
+        ]
     ),
     createAnimatedScene(
         'buff1_pawn_combat',
@@ -214,9 +250,15 @@ const RULE_SCENES = [
                 boardState: placePieces([
                     { position: [6, 3], pieces: createPiece('white_pawn', { pawnBuff: 1 }) },
                     { position: [5, 3], pieces: createPiece('black_knight') }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [6, 3], pieces: createPiece('white_pawn', { pawnBuff: 1 }) },
+                    { position: [5, 3], pieces: createPiece('black_knight') }
                 ]),
                 positionInPlay: [6, 3],
-                possibleMoves: [[5, 3], [4, 3]],
+                possibleMoves: [[5, 3]],
                 possibleCaptures: [[[5, 3], [5, 3]]]
             }),
             createSceneState({
@@ -225,8 +267,7 @@ const RULE_SCENES = [
                 ]),
                 capturedPieces: { white: ['black_knight'], black: [] }
             })
-        ],
-        { frameDelayMs: 650 }
+        ]
     ),
     createStaticScene(
         'knight_movement',
@@ -286,11 +327,11 @@ const RULE_SCENES = [
         createSceneState({
             turnCount: 20,
             boardState: placePieces([
-                { position: [4, 4], pieces: createPiece('white_rook') },
+                { position: [5, 4], pieces: createPiece('white_rook') },
                 { position: [0, 4], pieces: createPiece('black_knight') }
             ]),
-            positionInPlay: [4, 4],
-            possibleMoves: [[3, 4], [2, 4], [1, 4], [5, 4], [6, 4], [7, 4], [4, 3], [4, 2], [4, 5], [4, 6], [4, 7]],
+            positionInPlay: [5, 4],
+            possibleMoves: [[4, 4], [3, 4], [2, 4], [1, 4], [6, 4], [7, 4], [5, 3], [5, 2], [5, 1], [5, 0], [5, 5], [5, 6], [5, 7]],
             possibleCaptures: [[[0, 4], [0, 4]]]
         })
     ),
@@ -312,17 +353,21 @@ const RULE_SCENES = [
             createSceneState({
                 boardState: placePieces([
                     { position: [5, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) }
+                ])
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [5, 2], pieces: createPiece('white_bishop', { energizeStacks: 15 }) }
                 ]),
                 positionInPlay: [5, 2],
                 possibleMoves: [[4, 1], [3, 0], [4, 3], [6, 1], [6, 3]]
             }),
             createSceneState({
                 boardState: placePieces([
-                    { position: [4, 3], pieces: createPiece('white_bishop', { energizeStacks: 25 }) }
+                    { position: [3, 0], pieces: createPiece('white_bishop', { energizeStacks: 35 }) }
                 ])
             })
-        ],
-        { frameDelayMs: 650 }
+        ]
     ),
     createAnimatedScene(
         'bishop_stacks_capture',
@@ -442,19 +487,14 @@ const RULE_SCENES = [
         boardCrop(),
         createSceneState({
             boardState: placePieces([
-                { position: [4, 3], pieces: createPiece('white_queen') },
-                { position: [1, 3], pieces: createPiece('black_knight') },
-                { position: [2, 5], pieces: createPiece('black_pawn') }
+                { position: [4, 4], pieces: createPiece('white_queen') }
             ]),
-            positionInPlay: [4, 3],
+            positionInPlay: [4, 4],
             possibleMoves: [
-                [3, 3], [2, 3], [5, 3], [6, 3], [7, 3],
-                [4, 2], [4, 1], [4, 0], [4, 4], [4, 5], [4, 6], [4, 7],
-                [3, 2], [2, 1], [1, 0], [3, 4], [5, 2], [6, 1], [7, 0], [5, 4], [6, 5], [7, 6]
-            ],
-            possibleCaptures: [
-                [[1, 3], [1, 3]],
-                [[2, 5], [2, 5]]
+                [3, 4], [2, 4], [1, 4], [0, 4], [5, 4], [6, 4], [7, 4],
+                [4, 3], [4, 2], [4, 1], [4, 0], [4, 5], [4, 6], [4, 7],
+                [3, 3], [2, 2], [1, 1], [0, 0], [3, 5], [2, 6], [1, 7],
+                [5, 3], [6, 2], [7, 1], [5, 5], [6, 6], [7, 7]
             ]
         })
     ),
@@ -462,6 +502,15 @@ const RULE_SCENES = [
         'queen_stun',
         squareRegion([2, 2], [6, 6]),
         [
+            createSceneState({
+                boardState: placePieces([
+                    { position: [5, 4], pieces: createPiece('white_queen') },
+                    { position: [3, 3], pieces: createPiece('black_knight') },
+                    { position: [3, 5], pieces: createPiece('black_rook') },
+                    { position: [4, 3], pieces: createPiece('black_pawn') },
+                    { position: [4, 5], pieces: createPiece('black_pawn') }
+                ])
+            }),
             createSceneState({
                 boardState: placePieces([
                     { position: [5, 4], pieces: createPiece('white_queen') },
@@ -482,12 +531,11 @@ const RULE_SCENES = [
                     { position: [4, 5], pieces: createPiece('black_pawn', { isStunned: true }) }
                 ])
             })
-        ],
-        { frameDelayMs: 650 }
+        ]
     ),
     createStaticScene(
         'king_movement',
-        squareRegion([3, 3], [6, 6]),
+        squareRegion([3, 3], [5, 5]),
         createSceneState({
             boardState: placePieces([
                 { position: [4, 4], pieces: createPiece('white_king') }
@@ -504,6 +552,12 @@ const RULE_SCENES = [
                 boardState: placePieces([
                     { position: [5, 4], pieces: createPiece('white_king') }
                 ]),
+                swordInTheStonePosition: [4, 4]
+            }),
+            createSceneState({
+                boardState: placePieces([
+                    { position: [5, 4], pieces: createPiece('white_king') }
+                ]),
                 swordInTheStonePosition: [4, 4],
                 positionInPlay: [5, 4],
                 possibleMoves: [[4, 4], [4, 3], [4, 5], [5, 3], [5, 5], [6, 3], [6, 4], [6, 5]]
@@ -514,8 +568,7 @@ const RULE_SCENES = [
                 ]),
                 swordInTheStonePosition: [4, 4]
             })
-        ],
-        { frameDelayMs: 750 }
+        ]
     )
 ]
 
