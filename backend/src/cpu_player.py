@@ -398,15 +398,15 @@ def process_game(game_id: str, instance_id: str) -> None:
     except Exception:
         logger.exception(f"CPU: Error processing game {game_id}")
     finally:
-        # Clear CPU claim regardless of outcome
+        # Clear CPU claim only if this instance still owns it
         try:
             game_database = mongo_client["game_db"]
             game_database["games"].update_one(
-                {"_id": ObjectId(game_id)},
+                {"_id": ObjectId(game_id), "cpu_id": instance_id},
                 {"$set": {"cpu_id": None, "last_checked_by_cpu": None}}
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"CPU: Failed to release lock for game {game_id}: {e}")
 
 
 # ---------------------------------------------------------------------------
