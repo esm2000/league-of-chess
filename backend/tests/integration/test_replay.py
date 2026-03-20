@@ -83,21 +83,19 @@ def test_empty_replay(game):
 def test_single_turn_replay(game):
     """Single white turn (select + move) → replay shows only that one turn.
 
-    Black king is boxed in by own pawns so the CPU has no valid moves and
-    won't add extra states to the replay.
+    cpu_id is set to prevent the CPU from claiming and playing black's turn.
     """
     game = setup_custom_board(game, [
         (7, 4, {"type": "white_king"}),
         (6, 4, {"type": "white_pawn", "pawn_buff": 0}),
-        (0, 4, {"type": "black_king"}),  # boxed in by pawns below
-        (1, 3, {"type": "black_pawn", "pawn_buff": 0}),
-        (1, 4, {"type": "black_pawn", "pawn_buff": 0}),
-        (1, 5, {"type": "black_pawn", "pawn_buff": 0}),
+        (0, 4, {"type": "black_king"}),
+        (0, 0, {"type": "black_rook"}),
     ], turn_count=0, extra={
         "castle_log": {
             "white": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True},
             "black": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True}
-        }
+        },
+        "cpu_id": "disabled"
     })
 
     game = select_and_move_white_piece(game, 6, 4, 4, 4)  # e2→e4
@@ -418,24 +416,36 @@ def test_bishop_3_stack_debuff_replay(game):
     # where g5 is in its threat range. f4=[4,5] threatens g5=[3,6] diagonally. Yes!
     game = select_and_move_white_piece(game, 5, 4, 4, 5)  # Be3→f4 (threatens g5, triggers 3rd debuff)
 
-    # After 3rd debuff, the turn doesn't increment — white must choose capture or spare.
-    # Verify the debuff triggered by checking the pawn now has 3 stacks.
-    pawn_square = game["board_state"][3][6]
-    has_3_stacks = any(p.get("bishop_debuff") == 3 for p in (pawn_square or []))
-    assert has_3_stacks, "Pawn should have 3 bishop debuff stacks"
+    # After 3rd debuff, verify it triggered
+    assert any(p.get("bishop_debuff") == 3 for p in (game["board_state"][3][6] or []))
 
-    # The replay should show: bishop select → bishop moves (debuff triggers to 3)
-    # The capture/spare resolution is the next UI interaction the player makes.
+    # Capture the debuffed pawn (same pattern as test_full_bishop_debuff_capture)
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["captured_pieces"]["white"].append("black_pawn")
+    game_on_next_turn["board_state"][3][6] = []
+    game_on_next_turn["bishop_special_captures"].append({
+        "position": [3, 6],
+        "type": "black_pawn"
+    })
+    game = api.update_game_state(
+        game["id"], api.GameStateRequest(**game_on_next_turn), Response()
+    )
+
+    # Debuff capture now increments the turn (bug fix). Black responds.
+    game = select_and_move_black_piece(game, 0, 0, 0, 1)  # Ra8→b8
+
     result = get_replay(game["id"])
-    assert len(result) >= 2
+    assert len(result) >= 3
 
-    # Verify the debuff state appears in the replay
+    # Verify the debuff + capture sequence appears
     has_debuff = any(
         any(p.get("bishop_debuff") == 3
             for row in s["board_state"] for sq in row for p in (sq or []))
         for s in result
     )
     assert has_debuff
+    has_capture = any("black_pawn" in s.get("captured_pieces", {}).get("white", []) for s in result)
+    assert has_capture
 
 
 # ---------------------------------------------------------------------------

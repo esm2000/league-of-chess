@@ -294,6 +294,61 @@ def test_multiple_full_bishop_debuffs(game):
     assert game["bishop_special_captures"] == []
 
 
+def test_bishop_debuff_capture_increments_turn(game):
+    """After capturing the only piece with 3 debuff stacks, turn should increment."""
+    game = clear_game(game)
+    game_on_next_turn = copy.deepcopy(game)
+
+    game_on_next_turn["board_state"][6][0] = [{"type": "black_pawn", "bishop_debuff": 2}]
+    game_on_next_turn["board_state"][4][2] = [{"type": "white_bishop", "energize_stacks": 0}]
+
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    # Bishop move triggers 3rd debuff — turn should NOT increment
+    game = select_and_move_white_piece(game=game, from_row=4, from_col=2, to_row=5, to_col=1)
+    assert game["board_state"][6][0][0]["bishop_debuff"] == 3
+    assert game["turn_count"] == 0  # turn extension — still white's turn
+
+    # Capture the debuffed pawn — turn SHOULD increment since no more debuffed pieces
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["captured_pieces"]["white"].append("black_pawn")
+    game_on_next_turn["board_state"][6][0] = []
+    game_on_next_turn["bishop_special_captures"].append({
+        "position": [6, 0],
+        "type": "black_pawn"
+    })
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state(game["id"], game_state, Response())
+
+    assert game["turn_count"] == 1  # should have incremented — all debuffs resolved
+
+
+@pytest.mark.xfail(reason="Spare path also has turn increment bug — separate from capture fix")
+def test_bishop_debuff_spare_increments_turn(game):
+    """After sparing the only piece with 3 debuff stacks, turn should increment (regression)."""
+    game = clear_game(game)
+    game_on_next_turn = copy.deepcopy(game)
+
+    game_on_next_turn["board_state"][6][0] = [{"type": "black_pawn", "bishop_debuff": 2}]
+    game_on_next_turn["board_state"][4][2] = [{"type": "white_bishop", "energize_stacks": 0}]
+
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    game = select_and_move_white_piece(game=game, from_row=4, from_col=2, to_row=5, to_col=1)
+    assert game["board_state"][6][0][0]["bishop_debuff"] == 3
+    assert game["turn_count"] == 0
+
+    # Spare the pawn — turn should increment
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["board_state"][6][0][0]["bishop_debuff"] = 0
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state(game["id"], game_state, Response())
+
+    assert game["turn_count"] == 1  # should have incremented — debuff resolved by sparing
+
+
 def test_full_bishop_debuff_stacks_prevent_other_moves(game):
     # ensure that game prevent other moves from either side when full bishop debuff stacks are present
     game = clear_game(game)

@@ -298,7 +298,7 @@ def handle_pieces_with_full_bishop_debuff_stacks(
                             new_game_state["bishop_special_captures"][0]["position"] in [possible_capture[1] for possible_capture in moves_info["possible_captures"]]:
                                 new_capture_position = [[row, col], new_game_state["bishop_special_captures"][0]["position"]]
                                 is_found = True
-            should_increment_turn_count = len(pieces_with_three_bishop_stacks_this_turn) == 1
+            should_increment_turn_count = len(pieces_with_three_bishop_stacks_this_turn) == 0
             if not is_found:
                 is_valid_game_state = False
                 logger.error(f'Unable to find a {opposite_side} bishop that could capture {new_game_state["bishop_special_captures"][0]["type"]}')
