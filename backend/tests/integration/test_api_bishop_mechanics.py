@@ -324,7 +324,6 @@ def test_bishop_debuff_capture_increments_turn(game):
     assert game["turn_count"] == 1  # should have incremented — all debuffs resolved
 
 
-@pytest.mark.xfail(reason="Spare path also has turn increment bug — separate from capture fix")
 def test_bishop_debuff_spare_increments_turn(game):
     """After sparing the only piece with 3 debuff stacks, turn should increment (regression)."""
     game = clear_game(game)
