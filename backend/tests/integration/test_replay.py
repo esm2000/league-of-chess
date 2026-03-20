@@ -81,13 +81,18 @@ def test_empty_replay(game):
 
 
 def test_single_turn_replay(game):
-    """Single white turn (select + move) → replay shows only that one turn."""
-    # Use custom board so no CPU black turn happens after
+    """Single white turn (select + move) → replay shows only that one turn.
+
+    Black king is boxed in by own pawns so the CPU has no valid moves and
+    won't add extra states to the replay.
+    """
     game = setup_custom_board(game, [
         (7, 4, {"type": "white_king"}),
         (6, 4, {"type": "white_pawn", "pawn_buff": 0}),
-        (0, 4, {"type": "black_king"}),
-        (0, 0, {"type": "black_rook"}),
+        (0, 4, {"type": "black_king"}),  # boxed in by pawns below
+        (1, 3, {"type": "black_pawn", "pawn_buff": 0}),
+        (1, 4, {"type": "black_pawn", "pawn_buff": 0}),
+        (1, 5, {"type": "black_pawn", "pawn_buff": 0}),
     ], turn_count=0, extra={
         "castle_log": {
             "white": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True},
@@ -413,13 +418,24 @@ def test_bishop_3_stack_debuff_replay(game):
     # where g5 is in its threat range. f4=[4,5] threatens g5=[3,6] diagonally. Yes!
     game = select_and_move_white_piece(game, 5, 4, 4, 5)  # Be3→f4 (threatens g5, triggers 3rd debuff)
 
-    # After 3rd debuff, the bishop debuff capture/spare mechanism fires.
-    # The turn doesn't increment — white must choose capture or spare.
-    # This is the turn extension the replay should show.
+    # After 3rd debuff, the turn doesn't increment — white must choose capture or spare.
+    # Verify the debuff triggered by checking the pawn now has 3 stacks.
+    pawn_square = game["board_state"][3][6]
+    has_3_stacks = any(p.get("bishop_debuff") == 3 for p in (pawn_square or []))
+    assert has_3_stacks, "Pawn should have 3 bishop debuff stacks"
 
+    # The replay should show: bishop select → bishop moves (debuff triggers to 3)
+    # The capture/spare resolution is the next UI interaction the player makes.
     result = get_replay(game["id"])
     assert len(result) >= 2
-    assert get_snapshot_count(game["id"]) >= 2
+
+    # Verify the debuff state appears in the replay
+    has_debuff = any(
+        any(p.get("bishop_debuff") == 3
+            for row in s["board_state"] for sq in row for p in (sq or []))
+        for s in result
+    )
+    assert has_debuff
 
 
 # ---------------------------------------------------------------------------
@@ -627,33 +643,35 @@ def test_game_over_checkmate_replay(game):
 
 
 def test_stun_skip_replay(game):
-    """Realistic stun skip: black queen stuns white pieces → white can't move → turn skips.
+    """Realistic stun skip: black queen moves to stun white pieces → white can't move → skip.
 
-    Setup: Black queen moves adjacent to white's pieces without capturing, stunning them.
-    White king is boxed in by own stunned pawns. On white's turn, all pieces are stunned
-    and king can't move → turn auto-skips.
+    Turn 1: Black queen starts away from white pieces, moves adjacent to stun them.
+    Turn 2: White is boxed in + all stunned → auto-skip.
+    The replay shows the queen's stun move and the resulting skip.
     """
-    # Position: white king boxed in by own pawns (all already stunned from a previous queen move).
-    # Black queen nearby. Black makes a move, then white's turn auto-skips.
+    # White king at e1 boxed by own pawns. d1 and f1 are already stunned from earlier.
+    # Black queen at a3 will move to e3 (adjacent to d2, e2, f2) to stun the remaining
+    # 3 pawns. After that, ALL 5 pawns are stunned and king can't move → skip.
     game = setup_custom_board(game, [
         (7, 4, {"type": "white_king"}),  # e1
-        (6, 3, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # d2
-        (6, 4, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # e2
-        (6, 5, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # f2
-        (7, 3, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # d1
-        (7, 5, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # f1
-        (5, 4, {"type": "black_queen"}),  # e3 — the piece that stunned the white pawns
+        (6, 3, {"type": "white_pawn", "pawn_buff": 0}),  # d2 — will get stunned by queen
+        (6, 4, {"type": "white_pawn", "pawn_buff": 0}),  # e2 — will get stunned by queen
+        (6, 5, {"type": "white_pawn", "pawn_buff": 0}),  # f2 — will get stunned by queen
+        (7, 3, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 20}),  # d1 — already stunned
+        (7, 5, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 20}),  # f1 — already stunned
+        (5, 0, {"type": "black_queen"}),  # a3 — starts away, will move to e3
         (0, 4, {"type": "black_king"}),
-    ], turn_count=7, extra={  # odd turn = black's turn, higher count for realism
+    ], turn_count=7, extra={  # odd turn = black's turn
         "castle_log": {
             "white": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True},
             "black": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True}
         }
     })
 
-    # Black queen moves away (turn 7→8). White's turn (8) but king boxed in + all stunned → skip
-    game = select_and_move_black_piece(game, 5, 4, 5, 0)  # Qe3→a3
+    # Black queen a3=[5,0] → e3=[5,4] — moves adjacent to white pawns WITHOUT capturing → stuns them
+    game = select_and_move_black_piece(game, 5, 0, 5, 4)  # Qa3→e3
 
+    # After stun: turn increments to 8 (white's turn). King boxed in + all pieces stunned → skip
     result = get_replay(game["id"])
     assert len(result) >= 1
 
