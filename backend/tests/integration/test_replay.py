@@ -81,14 +81,26 @@ def test_empty_replay(game):
 
 
 def test_single_turn_replay(game):
-    """Single white turn (select + move) → replay shows piece selection then move."""
+    """Single white turn (select + move) → replay shows only that one turn."""
+    # Use custom board so no CPU black turn happens after
+    game = setup_custom_board(game, [
+        (7, 4, {"type": "white_king"}),
+        (6, 4, {"type": "white_pawn", "pawn_buff": 0}),
+        (0, 4, {"type": "black_king"}),
+        (0, 0, {"type": "black_rook"}),
+    ], turn_count=0, extra={
+        "castle_log": {
+            "white": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True},
+            "black": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True}
+        }
+    })
+
     game = select_and_move_white_piece(game, 6, 4, 4, 4)  # e2→e4
 
     result = get_replay(game["id"])
-    assert len(result) >= 2  # select step + move step
+    assert len(result) >= 2
 
-    # First state should be the select (position_in_play set, turn 0)
-    # Last state should be after the move (turn 1)
+    # Should only contain turn 0 (select) and turn 1 (after move)
     assert result[0]["turn_count"] == 0
     assert result[-1]["turn_count"] == 1
 
@@ -262,18 +274,12 @@ def test_check_escape_by_blocking_replay(game):
 
     Bishop check along diagonal, black interposes rook on the diagonal to block.
     """
-    # Bishop at d3=[5,3] moves to c4=[4,2], checking king at a6=[2,0] via diagonal c4-b5-a6
-    # Wait, c4=[4,2] to a6=[2,0]: path b5=[3,1]. Black rook at d6=[2,3] can move to b5=[3,1]? No, that's backward.
-    # Simpler: use the check from test_capture_to_escape but have black BLOCK instead of capture
-    # Bishop at c6=[2,2] → d7=[1,3] checks king at e8=[0,4]. Diagonal: d7-e8.
-    # That's adjacent — can't block adjacent check.
-    # Bishop at e3=[5,4] → d4=[4,3] checks king at a7=[1,0]? Diagonal d4-c5-b6-a7. 3 squares.
-    # Black rook at h7=[1,7] can move to b7=[1,1]? That doesn't block the diagonal.
-    # Rook at c8=[0,2] → c5=[3,2]? Blocks diagonal at c5=[3,2] between d4=[4,3] and a7=[1,0].
-    # Actually diagonal d4→c5→b6→a7. Rook blocking at c5=[3,2] works!
+    # Bishop at f2=[6,5] NOT on diagonal to a7, so black starts NOT in check.
+    # Bishop moves to d4=[4,3] which checks king at a7=[1,0] via diagonal d4-c5-b6-a7.
+    # Black rook at c8=[0,2] interposes at c5=[3,2] to block.
     game = setup_custom_board(game, [
         (7, 4, {"type": "white_king"}),
-        (5, 4, {"type": "white_bishop", "energize_stacks": 0}),  # e3
+        (6, 5, {"type": "white_bishop", "energize_stacks": 0}),  # f2 — not checking a7
         (1, 0, {"type": "black_king"}),  # a7
         (0, 2, {"type": "black_rook"}),  # c8 — can move to c5=[3,2] to block
         (1, 1, {"type": "black_pawn", "pawn_buff": 0}),
@@ -284,8 +290,10 @@ def test_check_escape_by_blocking_replay(game):
         }
     })
 
-    # White bishop e3=[5,4] → d4=[4,3] — checks king at a7=[1,0] along diagonal d4-c5-b6-a7
-    game = select_and_move_white_piece(game, 5, 4, 4, 3)
+    assert game["check"]["black"] == False  # not in check initially
+
+    # White bishop f2=[6,5] → d4=[4,3] — checks king at a7=[1,0] via diagonal d4-c5-b6-a7
+    game = select_and_move_white_piece(game, 6, 5, 4, 3)
     assert game["check"]["black"] == True
 
     # Black rook c8=[0,2] → c5=[3,2] — blocks the diagonal between d4 and a7
@@ -403,10 +411,14 @@ def test_bishop_3_stack_debuff_replay(game):
     # Or f2=[6,5], d4=[4,3], etc.
     # To THREATEN (not capture) the pawn to add debuff, bishop needs to move to a square
     # where g5 is in its threat range. f4=[4,5] threatens g5=[3,6] diagonally. Yes!
-    game = select_and_move_white_piece(game, 5, 4, 4, 5)  # Be3→f4 (threatens g5)
+    game = select_and_move_white_piece(game, 5, 4, 4, 5)  # Be3→f4 (threatens g5, triggers 3rd debuff)
+
+    # After 3rd debuff, the bishop debuff capture/spare mechanism fires.
+    # The turn doesn't increment — white must choose capture or spare.
+    # This is the turn extension the replay should show.
 
     result = get_replay(game["id"])
-    assert len(result) >= 1
+    assert len(result) >= 2
     assert get_snapshot_count(game["id"]) >= 2
 
 
@@ -615,36 +627,36 @@ def test_game_over_checkmate_replay(game):
 
 
 def test_stun_skip_replay(game):
-    """All white non-king pieces stunned + king boxed in → turn auto-skips by 2.
+    """Realistic stun skip: black queen stuns white pieces → white can't move → turn skips.
 
-    King at e1 surrounded by own stunned pawns — cannot move. All non-king pieces stunned.
-    After white's "turn" (which auto-skips), turn_count jumps by 2.
+    Setup: Black queen moves adjacent to white's pieces without capturing, stunning them.
+    White king is boxed in by own stunned pawns. On white's turn, all pieces are stunned
+    and king can't move → turn auto-skips.
     """
+    # Position: white king boxed in by own pawns (all already stunned from a previous queen move).
+    # Black queen nearby. Black makes a move, then white's turn auto-skips.
     game = setup_custom_board(game, [
         (7, 4, {"type": "white_king"}),  # e1
-        # Stunned pawns surrounding king
         (6, 3, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # d2
         (6, 4, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # e2
         (6, 5, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # f2
         (7, 3, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # d1
         (7, 5, {"type": "white_pawn", "pawn_buff": 0, "is_stunned": True, "turn_stunned_for": 10}),  # f1
+        (5, 4, {"type": "black_queen"}),  # e3 — the piece that stunned the white pawns
         (0, 4, {"type": "black_king"}),
-        (0, 0, {"type": "black_rook"}),
-    ], turn_count=1, extra={  # turn 1 = black's turn
+    ], turn_count=7, extra={  # odd turn = black's turn, higher count for realism
         "castle_log": {
             "white": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True},
             "black": {"has_king_moved": True, "has_left_rook_moved": True, "has_right_rook_moved": True}
         }
     })
 
-    # Black moves (turn 1→2). At turn 2, it's white's turn but king can't move
-    # and all pieces stunned → auto-skip by 2 (turn 2→4)
-    game = select_and_move_black_piece(game, 0, 0, 0, 1)  # Ra8→b8
+    # Black queen moves away (turn 7→8). White's turn (8) but king boxed in + all stunned → skip
+    game = select_and_move_black_piece(game, 5, 4, 5, 0)  # Qe3→a3
 
     result = get_replay(game["id"])
     assert len(result) >= 1
 
-    # Turn should have jumped — black move increments to 2, then white's stun skip adds 2 = turn 4
-    # But the skip might only add 1 depending on exact conditions. Just verify it skipped past 2.
+    # Turn should have jumped past 8 (white's stun skip)
     last = result[-1]
-    assert last["turn_count"] >= 3  # at minimum, the stun skip advanced beyond normal
+    assert last["turn_count"] >= 9
