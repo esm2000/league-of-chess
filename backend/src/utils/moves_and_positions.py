@@ -37,7 +37,12 @@ def determine_possible_moves(old_game_state: GameState, new_game_state: GameStat
             moves_info = moves.get_moves(old_game_state, new_game_state, new_game_state["position_in_play"], piece)
             if "king" in piece.get("type", ""):
                 side = piece["type"].split("_")[0]
+                pre_trim = set(tuple(m) for m in moves_info["possible_moves"])
                 moves_info = trim_king_moves(moves_info, old_game_state, new_game_state, side)
+                post_trim = set(tuple(m) for m in moves_info["possible_moves"])
+                new_game_state["unsafe_king_moves"] = [list(m) for m in pre_trim - post_trim]
+            else:
+                new_game_state["unsafe_king_moves"] = []
         except Exception as e:
             logger.error(f"Unable to determine move for {piece} due to: {traceback.format_exc()}")
 

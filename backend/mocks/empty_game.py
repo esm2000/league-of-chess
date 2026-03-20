@@ -6,6 +6,7 @@ empty_game = {
     "position_in_play": [None, None],
     "possible_moves": [],
     "possible_captures": [],
+    "unsafe_king_moves": [],
     "castle_moves": [],
     "captured_pieces": {"white": [], "black": []},
     "graveyard": [],

@@ -121,9 +121,10 @@ def get_replay_states(game_id: str, mongo_client: MongoClient) -> list[dict]:
 
 
 def clean_possible_moves_and_possible_captures(new_game_state: GameState) -> None:
-    """Clear possible_moves and possible_captures from the previous turn."""
+    """Clear possible_moves, possible_captures, and unsafe_king_moves from the previous turn."""
     new_game_state["possible_moves"] = []
     new_game_state["possible_captures"] = []
+    new_game_state["unsafe_king_moves"] = []
 
 
 def prevent_client_side_updates_to_graveyard(old_game_state: GameState, new_game_state: GameState) -> None:
