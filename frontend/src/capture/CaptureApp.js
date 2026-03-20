@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import Board from '../components/Board';
 import GameStateContext from '../context/GameStateContext';
 import { getRuleScene, getRuleSceneManifest } from './ruleScenes';
+import { BASE_API_URL, convertKeysToCamelCase } from '../utility';
+import { createInitialGameState } from '../context/GameStateContext';
 
 const CAPTURE_MODE_PARAM = 'captureMode'
 const CAPTURE_SCENE_PARAM = 'captureScene'
 const CAPTURE_STEP_PARAM = 'captureStep'
+const CAPTURE_REPLAY_PARAM = 'captureReplay'
 
 const getCaptureSearchParams = () => new URLSearchParams(window.location.search)
 
@@ -259,8 +262,99 @@ const CaptureSceneIndex = () => {
     )
 }
 
+const ReplayCaptureApp = ({ gameId, stepParam }) => {
+    const [replayStates, setReplayStates] = useState(null)
+    const [error, setError] = useState(null)
+
+    useEffect(() => {
+        // Prefer injected data from the capture script (avoids CORS with static server).
+        // Falls back to API fetch for interactive use.
+        if (window.__REPLAY_DATA__) {
+            setReplayStates(window.__REPLAY_DATA__)
+            return
+        }
+
+        fetch(`${BASE_API_URL}/api/game/${gameId}/replay`)
+            .then(r => r.json())
+            .then(states => setReplayStates(states))
+            .catch(e => setError(e.message))
+    }, [gameId])
+
+    useEffect(() => {
+        if (error) {
+            window.__RULE_CAPTURE_ERROR__ = error
+        }
+    }, [error])
+
+    if (!replayStates) {
+        return null
+    }
+
+    // When no step param, publish manifest with step count
+    if (stepParam === null) {
+        const scene = {
+            id: `replay_${gameId}`,
+            format: 'gif',
+            frameDelayMs: 1250,
+            steps: replayStates,
+            crop: { type: 'board-frame', padding: 0, edgeOffset: { top: 1, left: 1, right: -1, bottom: -1 } }
+        }
+
+        window.__RULE_CAPTURE_SCENES__ = [{
+            id: scene.id,
+            format: scene.format,
+            frameDelayMs: scene.frameDelayMs,
+            outputFile: `${scene.id}.gif`,
+            crop: scene.crop,
+            stepCount: replayStates.length
+        }]
+
+        return <CaptureSceneIndex />
+    }
+
+    const stepIndex = Math.min(Math.max(0, Number.parseInt(stepParam, 10) || 0), replayStates.length - 1)
+    const rawState = replayStates[stepIndex]
+    const gameState = {
+        ...createInitialGameState(),
+        ...convertKeysToCamelCase(rawState),
+        initialState: false
+    }
+
+    const scene = {
+        id: `replay_${gameId}`,
+        format: 'gif',
+        frameDelayMs: 1250,
+        steps: replayStates.map(s => ({ state: s })),
+        crop: { type: 'board-frame', padding: 0, edgeOffset: { top: 1, left: 1, right: -1, bottom: -1 } }
+    }
+
+    return (
+        <CaptureGameStateProvider initialState={gameState}>
+            <div
+                data-capture-shell="true"
+                style={{
+                    padding: '16px',
+                    minHeight: '100vh',
+                    boxSizing: 'border-box'
+                }}
+            >
+                <Board />
+            </div>
+            <CaptureMetadataBridge scene={scene} stepIndex={stepIndex} />
+        </CaptureGameStateProvider>
+    )
+}
+
 const CaptureApp = () => {
     const searchParams = getCaptureSearchParams()
+
+    // Replay capture mode
+    const replayGameId = searchParams.get(CAPTURE_REPLAY_PARAM)
+    if (replayGameId) {
+        return <ReplayCaptureApp gameId={replayGameId} stepParam={searchParams.get(CAPTURE_STEP_PARAM)} />
+    }
+
+    // Rule scene capture mode
     const sceneId = searchParams.get(CAPTURE_SCENE_PARAM)
     const scene = getRuleScene(sceneId)
     const stepIndex = clampStepIndex(scene, searchParams.get(CAPTURE_STEP_PARAM))

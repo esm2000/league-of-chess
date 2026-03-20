@@ -86,6 +86,17 @@ cd frontend && npm run capture:rules
 
 See [docs/rule-asset-capture.md](docs/rule-asset-capture.md) for scene previews, crop-region behavior, and output options.
 
+### Replay GIF Capture
+
+Replay GIFs render actual game board states from the replay endpoint in headless Chrome, producing pixel-accurate animated GIFs for visual review. Requires the backend running on `localhost:8080`:
+
+```bash
+cd frontend && npm run capture:replay -- --game-id <id>
+cd frontend && npm run capture:replay -- --game-id <id> --skip-build --output /tmp/replay.gif
+```
+
+Generated GIFs are saved to `replays/` by default. Use these to quickly verify replay correctness after changes to game mechanics or the replay system.
+
 ### Unit Tests
 
 To run unit tests navigate to root directory of folder and run the following in your terminal

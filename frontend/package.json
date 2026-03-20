@@ -16,6 +16,7 @@
     "build": "react-scripts build",
     "build-local-dev": "REACT_APP_LOCAL=true react-scripts build",
     "capture:rules": "node scripts/capture-rule-assets.mjs",
+    "capture:replay": "node scripts/capture-replay-gif.mjs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
