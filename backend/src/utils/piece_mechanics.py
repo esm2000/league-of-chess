@@ -258,8 +258,12 @@ def handle_pieces_with_full_bishop_debuff_stacks(
         #            - player spared piece
         #            - turn count is being incremented
         #            - (technically allow sparing of multiple pieces since this isn't game breaking behavior)
-    elif all([did_piece_get_spared_this_turn_from_special_bishop_capture(new_game_state, piece_info) for piece_info in pieces_with_three_bishop_stacks_last_turn]):
-        should_increment_turn_count = True
+    elif pieces_with_three_bishop_stacks_last_turn and \
+    all([did_piece_get_spared_this_turn_from_special_bishop_capture(new_game_state, piece_info) for piece_info in pieces_with_three_bishop_stacks_last_turn]):
+        # Spare resolution has no moved_pieces, so increment_turn_count() in the
+        # pipeline would skip. Increment directly and tell pipeline not to re-increment.
+        new_game_state["turn_count"] += 1
+        should_increment_turn_count = False
         # scenario 4 - more than one piece has been captured
     elif (pieces_with_three_bishop_stacks_this_turn or pieces_with_three_bishop_stacks_last_turn) and \
     more_than_one_side_has_pieces_captured(old_game_state, new_game_state):
@@ -298,7 +302,7 @@ def handle_pieces_with_full_bishop_debuff_stacks(
                             new_game_state["bishop_special_captures"][0]["position"] in [possible_capture[1] for possible_capture in moves_info["possible_captures"]]:
                                 new_capture_position = [[row, col], new_game_state["bishop_special_captures"][0]["position"]]
                                 is_found = True
-            should_increment_turn_count = len(pieces_with_three_bishop_stacks_this_turn) == 1
+            should_increment_turn_count = len(pieces_with_three_bishop_stacks_this_turn) == 0
             if not is_found:
                 is_valid_game_state = False
                 logger.error(f'Unable to find a {opposite_side} bishop that could capture {new_game_state["bishop_special_captures"][0]["type"]}')

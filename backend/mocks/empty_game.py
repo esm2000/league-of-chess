@@ -6,6 +6,7 @@ empty_game = {
     "position_in_play": [None, None],
     "possible_moves": [],
     "possible_captures": [],
+    "unsafe_king_moves": [],
     "castle_moves": [],
     "captured_pieces": {"white": [], "black": []},
     "graveyard": [],
@@ -44,6 +45,9 @@ empty_game = {
             "baron_nashor": {"active": False, "turn": 0}
         }
     },
+    "cpu_id": None,
+    "last_checked_by_cpu": None,
+    "version": 0,
     "board_state": [
         [None] * 8,
         [None] * 8,

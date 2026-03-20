@@ -176,7 +176,7 @@ def heal_neutral_monsters(old_game_state: GameState, new_game_state: GameState) 
         elif old_square[old_index]["health"] > new_square[new_index]["health"]:
             new_game_state["neutral_attack_log"][monster] = {"turn": turn_count}
 
-        elif old_square[old_index]["health"] == new_square[new_index]["health"] and turn_count - last_turn_attacked >= 3:
+        elif old_square[old_index]["health"] == new_square[new_index]["health"] and turn_count - last_turn_attacked >= 6:
             new_square[new_index]["health"] = max_health
 
 

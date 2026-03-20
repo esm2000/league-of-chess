@@ -314,22 +314,36 @@ def set_next_king_as_position_in_play_if_in_check(old_game_state: GameState, new
 
 
 def is_position_in_play_valid_to_save_king(old_game_state: GameState, new_game_state: GameState) -> bool:
-    """Return True if the piece at position_in_play can capture a piece threatening the king."""
+    """Return True if the piece at position_in_play can resolve check (capture or block)."""
     position_in_play = new_game_state["position_in_play"]
     if position_in_play == [None, None]:
         return False
 
-    square = new_game_state["board_state"][position_in_play[0]][position_in_play[1]]
+    row, col = position_in_play
+    square = new_game_state["board_state"][row][col]
     piece = next((p for p in square or [] if "neutral" not in p.get("type", "")), None)
 
     if not piece:
         return False
 
+    side = piece["type"].split("_")[0]
     moves_info = moves.get_moves(old_game_state, new_game_state, position_in_play, piece)
-    for possible_capture in moves_info["possible_captures"]:
-        enemy_position = possible_capture[1]
-        enemy_square = new_game_state["board_state"][enemy_position[0]][enemy_position[1]]
-        enemy_piece = next((p for p in enemy_square if "neutral" not in p.get("type", "")), None)
-        if moves.get_moves(old_game_state, new_game_state, enemy_position, enemy_piece)["threatening_move"]:
+
+    for possible_move in moves_info["possible_moves"]:
+        simulated_state = copy.deepcopy(new_game_state)
+        simulated_state["board_state"][possible_move[0]][possible_move[1]] = simulated_state["board_state"][row][col]
+        simulated_state["board_state"][row][col] = None
+        manage_check_status(copy.deepcopy(new_game_state), simulated_state)
+        if not simulated_state["check"][side]:
             return True
+
+    for possible_capture in moves_info["possible_captures"]:
+        simulated_state = copy.deepcopy(new_game_state)
+        simulated_state["board_state"][possible_capture[0][0]][possible_capture[0][1]] = simulated_state["board_state"][row][col]
+        simulated_state["board_state"][possible_capture[1][0]][possible_capture[1][1]] = None
+        simulated_state["board_state"][row][col] = None
+        manage_check_status(copy.deepcopy(new_game_state), simulated_state)
+        if not simulated_state["check"][side]:
+            return True
+
     return False

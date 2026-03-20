@@ -19,6 +19,7 @@ const Piece = (props) => {
     const leftPosition = props.col * 3.7 * (isMobile ? 2: 1)
 
     const handlePieceClick = () => {
+        if (gameState.isReplaying) return
         if (props.shopPieceSelected) return
 
         const isNeutralPiecePresent = () => {
@@ -130,6 +131,7 @@ const Piece = (props) => {
     }
 
     const handleSpareButtonClick = () => {
+        if (gameState.isReplaying) return
         const newBoardState = gameState.boardState.map((row, r) => {
             if (r !== props.row) return row;
             return row.map((square, c) => {
@@ -149,6 +151,7 @@ const Piece = (props) => {
     }
 
     const handleCaptureButtonClick = () => {
+        if (gameState.isReplaying) return
         const square = gameState.boardState[props.row][props.col] || []
         const captured = square.filter(piece => snakeToCamel(piece?.type) === props.type).map(piece => piece.type)
         const newCapturedPieces = {
@@ -180,6 +183,7 @@ const Piece = (props) => {
     }
 
     const handleCastleButtonClick = (castleMove) => {
+        if (gameState.isReplaying) return
         const startRow = castleMove[0]
         const kingCol = props.col
         const targetKingCol = castleMove[1]
@@ -216,6 +220,7 @@ const Piece = (props) => {
     }
 
     const handleSurrenderButtonClick = () => {
+        if (gameState.isReplaying) return
         const square = gameState.boardState[props.row][props.col] || []
         const surrendered = square.find(piece => snakeToCamel(piece?.type) === props.type)
         if (!surrendered) return
@@ -339,7 +344,8 @@ const Piece = (props) => {
                     display: 'flex',
                     alignItems: 'center',
                     top: `${topPosition + (3.25 * (isMobile ? 2: 1))}vw`,
-                    left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`
+                    left: `${leftPosition + (0.15 * (isMobile ? 2: 1))}vw`,
+                    pointerEvents: 'none'
                 }}>
                     <progress
                         className={className}
@@ -374,7 +380,8 @@ const Piece = (props) => {
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.8))',
-                        fontSize: isMobile ? '2.4vw': '0.8vw'
+                        fontSize: isMobile ? '2.4vw': '0.8vw',
+                        pointerEvents: 'none'
                     }}
                 >
                     {props.energizeStacks}
@@ -390,7 +397,8 @@ const Piece = (props) => {
                             width: isMobile ? '2.2vw': '0.7vw',
                             height: isMobile ? '2.2vw': '0.7vw',
                             top: `${topPosition + (isMobile ? 5.5 : 2.75)}vw`,
-                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 2.8 : 1))}vw`
+                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 2.8 : 1))}vw`,
+                            pointerEvents: 'none'
                         }}
                     />);
                 }): null
@@ -470,7 +478,8 @@ const Piece = (props) => {
                             width: isMobile ? '2.8vw': '0.9vw',
                             height: isMobile ? '2.8vw': '0.9vw',
                             top: `${topPosition}vw`,
-                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 3 : 1))}vw`
+                            left: `${leftPosition - (isMobile ? 4 : 1.5) + (count * (isMobile ? 3 : 1))}vw`,
+                            pointerEvents: 'none'
                         }}
                     />);
                 }): null

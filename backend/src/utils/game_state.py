@@ -4,7 +4,7 @@ import copy
 import datetime
 
 from bson.objectid import ObjectId
-from fastapi import Response
+from fastapi import HTTPException, Response
 from pymongo.mongo_client import MongoClient
 
 import src.api as api
@@ -44,23 +44,92 @@ def manage_game_state(old_game_state: GameState, new_game_state: GameState) -> N
 
 
 def perform_game_state_update(new_game_state: GameState, mongo_client: MongoClient, game_id: str) -> None:
-    """Persist game state to MongoDB."""
+    """Persist game state to MongoDB with version increment for optimistic concurrency."""
     new_game_state["last_updated"] = datetime.datetime.now()
-    query = {"_id": ObjectId(game_id)}
-    new_values = {"$set": new_game_state}
+    expected_version = new_game_state.get("version", 0)
+    new_game_state["version"] = expected_version + 1
+    query = {"_id": ObjectId(game_id), "version": expected_version}
     game_database = mongo_client["game_db"]
-    game_database["games"].update_one(query, new_values)
+    result = game_database["games"].replace_one(query, new_game_state)
+    if result.modified_count == 0:
+        raise HTTPException(status_code=409, detail="Game state was modified concurrently")
+    save_state_snapshot(new_game_state, mongo_client, game_id)
+
+
+def save_state_snapshot(game_state: GameState, mongo_client: MongoClient, game_id: str) -> None:
+    """Save a snapshot of the current game state to the history collection.
+
+    Called after every successful persist so replay can reconstruct recent turns.
+    Automatically prunes snapshots more than 10 turn_count values behind current.
+    """
+    snapshot = copy.deepcopy(game_state)
+    snapshot.pop("previous_state", None)
+    snapshot.pop("_id", None)
+    snapshot["game_id"] = game_id
+    game_database = mongo_client["game_db"]
+    game_database["game_state_history"].insert_one(snapshot)
+
+    current_turn = game_state.get("turn_count", 0)
+    game_database["game_state_history"].delete_many({
+        "game_id": game_id,
+        "turn_count": {"$lt": current_turn - 10}
+    })
+
+
+def get_replay_states(game_id: str, mongo_client: MongoClient) -> list[dict]:
+    """Return the last 2 completed turns of state snapshots for replay.
+
+    Walks backward through snapshots counting turn_count transitions (where
+    turn_count changes between consecutive snapshots). After 2 transitions,
+    continues collecting all snapshots at that turn_count boundary, then stops.
+    Returns snapshots in ascending version order.
+    """
+    game_database = mongo_client["game_db"]
+    snapshots = list(
+        game_database["game_state_history"]
+        .find({"game_id": game_id})
+        .sort("version", -1)
+    )
+
+    if not snapshots:
+        return []
+
+    collected = [snapshots[0]]
+    transitions = 0
+    prev_turn = snapshots[0].get("turn_count")
+    boundary_turn = None
+
+    for snap in snapshots[1:]:
+        current_turn = snap.get("turn_count")
+        if current_turn != prev_turn:
+            transitions += 1
+            if transitions >= 2 and boundary_turn is None:
+                boundary_turn = current_turn
+            prev_turn = current_turn
+
+        if boundary_turn is not None and current_turn != boundary_turn:
+            break
+
+        collected.append(snap)
+
+    collected.reverse()
+
+    for snap in collected:
+        snap.pop("_id", None)
+
+    return collected
 
 
 def clean_possible_moves_and_possible_captures(new_game_state: GameState) -> None:
-    """Clear possible_moves and possible_captures from the previous turn."""
+    """Clear possible_moves, possible_captures, and unsafe_king_moves from the previous turn."""
     new_game_state["possible_moves"] = []
     new_game_state["possible_captures"] = []
+    new_game_state["unsafe_king_moves"] = []
 
 
 def prevent_client_side_updates_to_graveyard(old_game_state: GameState, new_game_state: GameState) -> None:
     """Overwrite client-submitted graveyard with the server's authoritative copy."""
-    new_game_state["graveyard"] = old_game_state["graveyard"]
+    new_game_state["graveyard"] = list(old_game_state["graveyard"])
 
 
 def record_moved_pieces_this_turn(new_game_state: GameState, moved_pieces: list[MovedPiece]) -> None:
