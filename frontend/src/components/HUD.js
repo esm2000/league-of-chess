@@ -125,7 +125,7 @@ const HUD = (props) => {
                 }}>
                     <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
                     <div style={{ display: 'flex', gap: `${isMobile ? 0.6 : 0.3}vw` }}>
-                    {isWhiteTurn && gameState.hasReplayHistory && !gameState.blackDefeat && !gameState.whiteDefeat ?
+                    {isWhiteTurn && gameState.hasReplayHistory ?
                         <button
                             className="pixel-btn"
                             onClick={() => gameState.startReplay()}

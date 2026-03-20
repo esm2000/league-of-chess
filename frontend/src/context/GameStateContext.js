@@ -182,7 +182,7 @@ export function GameStateProvider({children}) {
         fetch(url, {"method": method})
         .then(response => response.json())
         .then(result => {
-            if (fetchGeneration.current !== currentGeneration) {
+            if (fetchGeneration.current !== currentGeneration || isReplayingRef.current) {
                 fetchInProgress.current = false
                 return
             }
@@ -197,7 +197,7 @@ export function GameStateProvider({children}) {
                 restartGame: restartGame,
                 startReplay: startReplay,
                 isReplaying: false,
-                hasReplayHistory: result["turn_count"] > 1
+                hasReplayHistory: result["turn_count"] > 0
             }
             setGameState(parsedResult)
             sessionStorage.setItem("gameStateId", parsedResult["id"])

@@ -81,7 +81,9 @@ def _apply_move_to_board(board, move, ref_board=None):
     if move["type"] == "capture":
         cap_r, cap_c = move["capture_at"]
         if [cap_r, cap_c] != [to_r, to_c]:
-            board[cap_r][cap_c] = None
+            # Remove only the captured piece, preserve neutrals on the same square
+            square = board[cap_r][cap_c] or []
+            board[cap_r][cap_c] = [p for p in square if p.get("type") != captured_piece_type] or None
 
     return captured_piece_type
 
@@ -213,12 +215,25 @@ def _has_marked_for_death(game_state: GameState) -> bool:
     )
 
 
+def _is_monster_adjacent(row, col, game_state):
+    """Return True if the square is adjacent to or on a live neutral monster."""
+    from src.utils.monsters import MONSTER_INFO, is_neutral_monster_spawned
+    for monster_type, info in MONSTER_INFO.items():
+        if not is_neutral_monster_spawned(monster_type, game_state["board_state"]):
+            continue
+        mr, mc = info["position"]
+        if abs(row - mr) <= 1 and abs(col - mc) <= 1:
+            return True
+    return False
+
+
 def _get_purchase_moves(game_state: GameState) -> list[dict]:
-    """Generate purchase options for affordable pieces on empty squares in rows 0-3."""
+    """Generate purchase options for affordable pieces on valid empty squares in rows 0-3."""
     gold = game_state["gold_count"].get(CPU_SIDE, 0)
     if gold < 2:
         return []
 
+    sword_pos = game_state.get("sword_in_the_stone_position")
     purchases = []
     for piece_name, cost in PURCHASABLE_PIECES.items():
         if cost > gold:
@@ -226,13 +241,18 @@ def _get_purchase_moves(game_state: GameState) -> list[dict]:
         piece_type = f"{CPU_SIDE}_{piece_name}"
         for row in range(4):
             for col in range(8):
-                if game_state["board_state"][row][col] is None:
-                    purchases.append({
-                        "type": "purchase",
-                        "piece_type": piece_type,
-                        "to_pos": [row, col],
-                        "cost": cost,
-                    })
+                if game_state["board_state"][row][col] is not None:
+                    continue
+                if sword_pos and [row, col] == sword_pos:
+                    continue
+                if _is_monster_adjacent(row, col, game_state):
+                    continue
+                purchases.append({
+                    "type": "purchase",
+                    "piece_type": piece_type,
+                    "to_pos": [row, col],
+                    "cost": cost,
+                })
     return purchases
 
 
