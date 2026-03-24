@@ -347,12 +347,13 @@ def _apply_pawn_promotion(game_id: str, game_state: GameState) -> dict:
 
     for col in range(8):
         square = promo_state["board_state"][7][col] or []
-        for i, piece in enumerate(square):
+        for piece in square:
             if piece.get("type") == "black_pawn":
                 new_piece = {"type": f"black_{chosen_piece}"}
                 if chosen_piece == "bishop":
                     new_piece["energize_stacks"] = 0
-                promo_state["board_state"][7][col] = [new_piece]
+                other_pieces = [p for p in square if p.get("type") != "black_pawn"]
+                promo_state["board_state"][7][col] = other_pieces + [new_piece]
                 promo_request = api.GameStateRequest(**promo_state)
                 return api.update_game_state(game_id, promo_request, Response(), player=False)
 
