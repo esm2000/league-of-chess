@@ -29,7 +29,6 @@ const PawnExchangeModal = (props) => {
             <div
                 className="pixel-panel"
                 style={{
-                    width: `${isMobile ? 40 : 20}vw`,
                     padding: `${isMobile ? 2 : 1}vw`,
                     textAlign: 'center'
                 }}
