@@ -84,6 +84,7 @@ const HUD = (props) => {
     }
 
     const isWhiteTurn = turnCount % 2 === 0
+    const isGameOver = gameState.blackDefeat || gameState.whiteDefeat
     const isKingOnHomeSquare = gameState.boardState[7][4]?.[0]?.type === "white_king"
 
     const handleConfirmRestart = () => {
@@ -135,7 +136,7 @@ const HUD = (props) => {
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: `${isMobile ? 0.6 : 0.3}vw` }}>
-                    {isWhiteTurn && gameState.hasReplayHistory ?
+                    {(isWhiteTurn || isGameOver) && gameState.hasReplayHistory ?
                         <button
                             className="pixel-btn"
                             onClick={() => gameState.startReplay()}
