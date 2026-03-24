@@ -123,7 +123,16 @@ const HUD = (props) => {
                     justifyContent: 'space-between',
                     marginBottom: `${isMobile ? 1 : 0.5}vw`
                 }}>
-                    <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: `${isMobile ? 1 : 0.5}vw` }}>
+                        <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
+                        {queenReset && (
+                            <span className="queen-reset-indicator" style={{
+                                fontSize: `${isMobile ? 1.6 : 0.8}vw`,
+                                color: 'rgb(255, 215, 0)',
+                                display: 'inline-block',
+                            }}>Queen Reset</span>
+                        )}
+                    </div>
                     <div style={{ display: 'flex', gap: `${isMobile ? 0.6 : 0.3}vw` }}>
                     {isWhiteTurn && gameState.hasReplayHistory ?
                         <button

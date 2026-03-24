@@ -20,8 +20,10 @@ def reset_queen_turn_on_kill_or_assist(old_game_state: GameState, new_game_state
                         curr_position=[i, j]
                     )
 
+                    enemy_side = "black" if moving_side == "white" else "white"
                     for moved_piece in moved_pieces:
                         if moved_piece["current_position"][0] is None and \
+                        moved_piece["side"] == enemy_side and \
                         (
                             # assist condition for queen reset
                             moved_piece["previous_position"] in queen_possible_moves_and_captures["possible_moves"] or \

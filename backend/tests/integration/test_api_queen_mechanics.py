@@ -255,6 +255,7 @@ def test_queen_turn_reset_limitations(game):
     assert game["turn_count"] == 2
 
 
+
 def test_skip_one_turn_if_all_non_king_pieces_are_stunned(game):
     # test that when all non-king pieces are stunned that a turn is skipped (with turn check enabled)
     for side in ["white"]:
