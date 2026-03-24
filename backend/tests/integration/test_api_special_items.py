@@ -62,6 +62,30 @@ def test_sword_in_the_stone_retrieval(game):
         assert game["board_state"][3][4][0]["check_protection"] == 1
 
 
+def test_sword_in_the_stone_cleared_on_monster_spawn(game):
+    # test that the sword in the stone is cleared when a neutral monster spawns on its square
+    game = clear_game(game)
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["board_state"][3][3] = [{"type": "white_king"}]
+    game_on_next_turn["board_state"][0][4] = [{"type": "black_king"}]
+    game_on_next_turn["board_state"][5][0] = [{"type": "white_pawn"}]
+    # baron spawns at [3,0] on turn 35
+    game_on_next_turn["turn_count"] = 34
+    game_on_next_turn["sword_in_the_stone_position"] = [3, 0]
+
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    assert game["sword_in_the_stone_position"] == [3, 0]
+
+    # white moves pawn, turn becomes 35, baron spawns at [3,0] on top of sword
+    game = select_and_move_white_piece(game=game, from_row=5, from_col=0, to_row=4, to_col=0)
+
+    assert game["turn_count"] == 35
+    assert game["sword_in_the_stone_position"] is None
+    assert any(p["type"] == "neutral_baron_nashor" for p in game["board_state"][3][0])
+
+
 def test_sword_in_the_stone_stacks(game):
     # test that the sword in the stone appropiately stacks
     for retrieval_side in ["white", "black"]:
