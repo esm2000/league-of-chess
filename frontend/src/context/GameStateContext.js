@@ -101,12 +101,24 @@ export function GameStateProvider({children}) {
             body: JSON.stringify(convertKeysToSnakeCase(gameState))
         })
         .then(response => {
+            if (response.status === 409) {
+                updateFailCount.current += 1
+                console.log(`Game state conflict (${updateFailCount.current}/3)`)
+                if (updateFailCount.current >= 3) {
+                    updateFailCount.current = 0
+                    setReconnectMessage("Game state lost — summoning a new battle")
+                    restartGame()
+                }
+                return
+            }
             if (!response.ok) {
                 throw new Error(`Request failed with status code ${response.status}: ${response.statusText}`)
             }
+            updateFailCount.current = 0
             return response.json();
         })
         .then(jsonResponse => {
+            if (!jsonResponse) return
             const parsedJsonResponse = {
                 ...convertKeysToCamelCase(jsonResponse),
                 updateGameState: updateGameState,
@@ -124,11 +136,14 @@ export function GameStateProvider({children}) {
     }
 
     const [gameState, setGameState] = useState(createInitialGameState);
+    const [reconnectMessage, setReconnectMessage] = useState(null)
 
     const fetchInProgress = useRef(false)
     const fetchGeneration = useRef(0)
     const isReplayingRef = useRef(false)
     const replayIntervalRef = useRef(null)
+    const updateFailCount = useRef(0)
+    const fetchFailCount = useRef(0)
 
     const startReplay = () => {
         if (isReplayingRef.current) return
@@ -180,8 +195,26 @@ export function GameStateProvider({children}) {
         }
 
         fetch(url, {"method": method})
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok && method === "GET") {
+                fetchFailCount.current += 1
+                console.log(`Game fetch failed ${response.status} (${fetchFailCount.current}/3)`)
+                if (fetchFailCount.current >= 3) {
+                    fetchFailCount.current = 0
+                    setReconnectMessage("Lost connection to game — starting fresh")
+                    fetchInProgress.current = false
+                    sessionStorage.removeItem("gameStateId")
+                    sessionStorage.removeItem("lastUpdated")
+                    fetchGameState()
+                }
+                fetchInProgress.current = false
+                return null
+            }
+            fetchFailCount.current = 0
+            return response.json()
+        })
         .then(result => {
+            if (!result) return
             if (fetchGeneration.current !== currentGeneration || isReplayingRef.current) {
                 fetchInProgress.current = false
                 return
@@ -239,8 +272,14 @@ export function GameStateProvider({children}) {
         }
     }, [])
 
+    useEffect(() => {
+        if (!reconnectMessage) return
+        const timer = setTimeout(() => setReconnectMessage(null), 4000)
+        return () => clearTimeout(timer)
+    }, [reconnectMessage])
+
     return(
-        <GameStateContext.Provider value={gameState}>
+        <GameStateContext.Provider value={{ ...gameState, reconnectMessage }}>
             {children}
         </GameStateContext.Provider>
     )
