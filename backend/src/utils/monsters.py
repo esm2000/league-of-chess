@@ -46,6 +46,8 @@ def spawn_neutral_monsters(game_state: GameState) -> None:
         monster_piece = [{"type": monster, "health": monster_info[monster]["max_health"], "turn_spawned": turn_count}]
         monster_position_row = monster_info[monster]["position"][0]
         monster_position_col = monster_info[monster]["position"][1]
+        if game_state["sword_in_the_stone_position"] == [monster_position_row, monster_position_col]:
+            game_state["sword_in_the_stone_position"] = None
         if game_state["board_state"][monster_position_row][monster_position_col] is None:
             game_state["board_state"][monster_position_row][monster_position_col] = monster_piece
         elif all(piece.get('type') != monster for piece in game_state["board_state"][monster_position_row][monster_position_col]):
@@ -176,7 +178,7 @@ def heal_neutral_monsters(old_game_state: GameState, new_game_state: GameState) 
         elif old_square[old_index]["health"] > new_square[new_index]["health"]:
             new_game_state["neutral_attack_log"][monster] = {"turn": turn_count}
 
-        elif old_square[old_index]["health"] == new_square[new_index]["health"] and turn_count - last_turn_attacked >= 3:
+        elif old_square[old_index]["health"] == new_square[new_index]["health"] and turn_count - last_turn_attacked >= 6:
             new_square[new_index]["health"] = max_health
 
 

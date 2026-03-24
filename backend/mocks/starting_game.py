@@ -6,6 +6,7 @@ starting_game = {
     "position_in_play": [None, None],
     "possible_moves": [],
     "possible_captures": [],
+    "unsafe_king_moves": [],
     "castle_moves": [],
     "captured_pieces": {"white": [], "black": []},
     "graveyard": [],
@@ -18,6 +19,7 @@ starting_game = {
     "bishop_special_captures": [],
     "latest_movement": {},
     "queen_reset": False,
+    "queen_reset_type": None,
     "neutral_attack_log": {},
     "check": {"white": False, "black": False},
     "castle_log": {
@@ -44,6 +46,9 @@ starting_game = {
             "baron_nashor": {"active": False, "turn": 0}
         }
     },
+    "cpu_id": None,
+    "last_checked_by_cpu": None,
+    "version": 0,
     "board_state": [
         [
             [{"type": "black_rook"}],

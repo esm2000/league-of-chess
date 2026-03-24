@@ -36,6 +36,8 @@ const Board = () => {
     const blackDefeat = gameState.blackDefeat
     const whiteDefeat = gameState.whiteDefeat
 
+    const reconnectMessage = gameState.reconnectMessage
+
     const [shopPieceSelected, setShopPieceSelected] = useState(null)
     const [pawnExchangePosition, setPawnExchangePosition] = useState(null)
 
@@ -192,7 +194,7 @@ const Board = () => {
                 })}
                 {swordInTheStonePosition ? 
                     <Buff
-                        hide={boardState[swordInTheStonePosition[0]][swordInTheStonePosition[1]] ? true : false}
+                        hide={boardState[swordInTheStonePosition[0]][swordInTheStonePosition[1]]?.length ? true : false}
                         type='swordInTheStone'
                         row={swordInTheStonePosition[0]} 
                         col={swordInTheStonePosition[1]}
@@ -209,6 +211,22 @@ const Board = () => {
                         side={PLAYERS[0]}
                         onExchange={() => setPawnExchangePosition(null)}
                     />
+                )}
+                {reconnectMessage && (
+                    <div className="pixel-panel" style={{
+                        position: 'absolute',
+                        top: '45%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        padding: `${isMobile ? 2 : 1}vw ${isMobile ? 3 : 1.5}vw`,
+                        fontSize: `${isMobile ? 2 : 1}vw`,
+                        textAlign: 'center',
+                        zIndex: 200,
+                        whiteSpace: 'nowrap',
+                        animation: 'reconnect-fade 4s ease-out forwards',
+                    }}>
+                        {reconnectMessage}
+                    </div>
                 )}
                 </div>
             </div>

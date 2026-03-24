@@ -186,6 +186,7 @@ class GameState(TypedDict, total=False):
     bishop_special_captures: list[BishopSpecialCapture]
 
     queen_reset: bool
+    queen_reset_type: Optional[str]
 
     latest_movement: LatestMovement
 
@@ -196,6 +197,11 @@ class GameState(TypedDict, total=False):
 
     previous_state: GameState
     last_updated: datetime.datetime
+
+    # CPU player fields
+    cpu_id: Optional[str]
+    last_checked_by_cpu: Optional[datetime.datetime]
+    version: int
 
 
 # ---------------------------------------------------------------------------

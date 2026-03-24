@@ -9,6 +9,7 @@ const HUD = (props) => {
     const gameState = GameStateContextData()
     const turnCount = gameState.turnCount
     const queenReset = gameState.queenReset
+    const queenResetType = gameState.queenResetType
     const bishopSpecialCaptures = gameState.bishopSpecialCaptures
     const goldCount = gameState.goldCount?.[PLAYERS[0]] || 0
     const enemyGoldCount = gameState.goldCount?.[PLAYERS[1]] || 0
@@ -38,6 +39,7 @@ const HUD = (props) => {
             return
         }
 
+        if (gameState.isReplaying) return
         if (prev === turnCount) return
 
         const prevIsPlayerTurn = prev % 2 === 0
@@ -70,6 +72,7 @@ const HUD = (props) => {
     }, [bishopSpecialCaptures, turnCount])
 
     const handleShopButtonClick = () => {
+        if (gameState.isReplaying) return
         setToggleShop(!toggleShop)
         setToggleBugReport(false)
     }
@@ -81,9 +84,11 @@ const HUD = (props) => {
     }
 
     const isWhiteTurn = turnCount % 2 === 0
+    const isGameOver = gameState.blackDefeat || gameState.whiteDefeat
     const isKingOnHomeSquare = gameState.boardState[7][4]?.[0]?.type === "white_king"
 
     const handleConfirmRestart = () => {
+        if (gameState.isReplaying) return
         setShowRestartConfirm(false)
         setToggleShop(false)
         props.setShopPieceSelected(null)
@@ -120,7 +125,31 @@ const HUD = (props) => {
                     justifyContent: 'space-between',
                     marginBottom: `${isMobile ? 1 : 0.5}vw`
                 }}>
-                    <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: `${isMobile ? 1 : 0.5}vw` }}>
+                        <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
+                        {queenReset && (
+                            <span className="queen-reset-indicator" style={{
+                                fontSize: `${isMobile ? 1.6 : 0.8}vw`,
+                                color: 'rgb(255, 215, 0)',
+                                display: 'inline-block',
+                            }}>Queen {queenResetType === 'kill' ? 'Kill' : 'Assist'}</span>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: `${isMobile ? 0.6 : 0.3}vw` }}>
+                    {(isWhiteTurn || isGameOver) && gameState.hasReplayHistory ?
+                        <button
+                            className="pixel-btn"
+                            onClick={() => gameState.startReplay()}
+                            disabled={gameState.isReplaying}
+                            style={{
+                                fontSize: `${isMobile ? 1.8 : 0.9}vw`,
+                                padding: `${isMobile ? 0.6 : 0.3}vw ${isMobile ? 1.5 : 0.75}vw`,
+                                borderRadius: `${isMobile ? 0.6 : 0.3}vw`,
+                                opacity: gameState.isReplaying ? 0.5 : 1
+                            }}
+                        >Replay</button> :
+                        null
+                    }
                     {isWhiteTurn && isKingOnHomeSquare ?
                         <button
                             className="pixel-btn"
@@ -133,6 +162,7 @@ const HUD = (props) => {
                         >{toggleShop ? "Close Shop" : "Open Shop"}</button> :
                         null
                     }
+                    </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', gap: `${isMobile ? 3 : 1.5}vw`, alignItems: 'center' }}>

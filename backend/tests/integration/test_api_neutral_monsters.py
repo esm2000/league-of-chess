@@ -232,7 +232,7 @@ def test_neutral_monster_ends_game_after_spawning_on_king(game):
 
 
 def test_neutral_monster_health_regen(game):
-    # test that neutral monster heals after 3 turns of not being damaged
+    # test that neutral monster heals after 6 half-turns (3 full rounds) of not being damaged
     game = clear_game(game)
     game_on_next_turn = copy.deepcopy(game)
     game_on_next_turn["turn_count"] = 11
@@ -245,26 +245,37 @@ def test_neutral_monster_health_regen(game):
 
     game_state = api.GameStateRequest(**game_on_next_turn)
     game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
-    
-    game = select_and_move_black_piece(game=game, from_row=2, from_col=7, to_row=3, to_col=7)
 
+    # Black pawn moves adjacent to dragon — deals damage (turn 11→12)
+    game = select_and_move_black_piece(game=game, from_row=2, from_col=7, to_row=3, to_col=7)
     assert game["board_state"][4][7][0]["health"] == 4
     assert game["turn_count"] == 12
 
+    # 5 idle moves — monster should NOT heal yet (only 5 half-turns since damage)
     game = select_and_move_white_piece(game=game, from_row=7, from_col=7, to_row=7, to_col=6)
-
     assert game["board_state"][4][7][0]["health"] == 4
     assert game["turn_count"] == 13
 
     game = select_and_move_black_piece(game=game, from_row=0, from_col=0, to_row=0, to_col=1)
-
     assert game["board_state"][4][7][0]["health"] == 4
     assert game["turn_count"] == 14
 
     game = select_and_move_white_piece(game=game, from_row=7, from_col=6, to_row=7, to_col=5)
-
-    assert game["board_state"][4][7][0]["health"] == 5
+    assert game["board_state"][4][7][0]["health"] == 4
     assert game["turn_count"] == 15
+
+    game = select_and_move_black_piece(game=game, from_row=0, from_col=1, to_row=0, to_col=0)
+    assert game["board_state"][4][7][0]["health"] == 4
+    assert game["turn_count"] == 16
+
+    game = select_and_move_white_piece(game=game, from_row=7, from_col=5, to_row=7, to_col=6)
+    assert game["board_state"][4][7][0]["health"] == 4
+    assert game["turn_count"] == 17
+
+    # 6th idle half-turn — monster heals to full (6 half-turns = 3 full rounds)
+    game = select_and_move_black_piece(game=game, from_row=0, from_col=0, to_row=0, to_col=1)
+    assert game["board_state"][4][7][0]["health"] == 5
+    assert game["turn_count"] == 18
 
 
 def test_check_by_neutral_monster(game):

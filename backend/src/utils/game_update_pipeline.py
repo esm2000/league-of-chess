@@ -87,6 +87,7 @@ def manage_turn_progression(old_game_state: GameState, new_game_state: GameState
     # queen turn logic
     if new_game_state["queen_reset"] and should_increment_turn_count:
         new_game_state["queen_reset"] = False
+        new_game_state["queen_reset_type"] = None
     else:
         should_increment_turn_count = utils.reset_queen_turn_on_kill_or_assist(
             old_game_state, new_game_state, moved_pieces, should_increment_turn_count
@@ -306,6 +307,10 @@ def finalize_game_state(old_game_state: GameState, new_game_state: GameState, mo
     
     # Final management and persistence
     utils.manage_game_state(old_game_state, new_game_state)
+    # Use the DB-authoritative version from old_game_state (not the client's
+    # potentially stale version) so the optimistic concurrency check in
+    # perform_game_state_update compares against the actual DB state.
+    new_game_state["version"] = old_game_state.get("version", 0)
     utils.perform_game_state_update(new_game_state, mongo_client, id)
 
     # Log move to game_moves collection (after persistence to avoid phantom entries)
@@ -326,6 +331,56 @@ def finalize_game_state(old_game_state: GameState, new_game_state: GameState, mo
             "timestamp": datetime.datetime.now(datetime.timezone.utc)
         }
         mongo_client["game_db"]["game_moves"].insert_one(move_log)
+
+
+def simulate_game_update(old_game_state: GameState, new_game_state: GameState) -> GameState | None:
+    """Run the update pipeline on in-memory states without DB access.
+
+    Mirrors the full update_game_state pipeline (special effects, turn progression,
+    validation, captures, metrics, endgame) but skips DB reads/writes and finalization.
+    Returns the resulting game state, or None if the pipeline rejects the move.
+    """
+    try:
+        moved_pieces = utils.determine_pieces_that_have_moved(
+            new_game_state["board_state"], old_game_state["board_state"]
+        )
+    except Exception:
+        return None
+
+    capture_positions = []
+
+    try:
+        is_valid = apply_special_piece_effects(old_game_state, new_game_state, moved_pieces)
+
+        is_valid, should_increment = manage_turn_progression(
+            old_game_state, new_game_state, moved_pieces, is_valid, capture_positions
+        )
+
+        is_valid, gold_spent = validate_moves_and_pieces(
+            old_game_state, new_game_state, moved_pieces, capture_positions, is_valid
+        )
+
+        if is_valid:
+            unmark_all_pieces_marked_for_death(new_game_state)
+
+        is_pawn_exchange_required, is_pawn_exchange_carried_out = handle_pawn_exchanges(
+            old_game_state, new_game_state, moved_pieces, is_valid
+        )
+
+        is_valid = handle_captures_and_combat(
+            old_game_state, new_game_state, moved_pieces, is_valid,
+            capture_positions, is_pawn_exchange_carried_out
+        )
+
+        update_game_metrics(old_game_state, new_game_state, moved_pieces, gold_spent)
+
+        is_valid = handle_endgame_conditions(
+            old_game_state, new_game_state, moved_pieces, is_valid, should_increment
+        )
+
+        return new_game_state if is_valid else None
+    except HTTPException:
+        return None
 
 
 def unmark_all_pieces_marked_for_death(new_game_state: GameState) -> None:

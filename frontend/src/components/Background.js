@@ -12,7 +12,8 @@ import {
     BARON_NASHOR_POSITION,
     PLAYERS,
     IMAGE_MAP,
-    camelToSnake
+    camelToSnake,
+    UNSAFE_KING_SQUARE_COLOR
 } from '../utility';
 
 const isBossActive = (boardState, bossPosition, bossType) => {
@@ -64,6 +65,7 @@ const Square = (props) => {
     }
 
     const handleSquareSelectionClick = () => {
+        if (gameState.isReplaying) return
         const newBoardState = [...gameState.boardState]
 
         if (!newBoardState[row][col]?.length) {
@@ -81,7 +83,7 @@ const Square = (props) => {
     }
 
     const handleSquareClick = () => {
-
+        if (gameState.isReplaying) return
         if (positionInPlay?.[0] != null && positionInPlay?.[1] != null) {
             const newBoardState = [...gameState.boardState]
             const newPositionInPlay = [null, null]
@@ -104,6 +106,8 @@ const Square = (props) => {
 
     const [isHovering, setIsHovering] = useState(false)
     const showHighlight = props.shopPieceSelected && isValidSquare(row, col)
+    const unsafeKingMoves = gameState.unsafeKingMoves || []
+    const isUnsafe = unsafeKingMoves.some(m => m[0] === row && m[1] === col)
 
     return (
         <div
@@ -112,6 +116,26 @@ const Square = (props) => {
             className="square"
             onClick={() => handleSquareClick()}
         >
+            {isUnsafe && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: UNSAFE_KING_SQUARE_COLOR,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                }}>
+                    <span style={{
+                        fontSize: `${isMobile ? 4 : 2}vw`,
+                        fontWeight: 'bold',
+                        color: 'rgba(186, 0, 0, 0.6)',
+                        lineHeight: 1,
+                        userSelect: 'none'
+                    }}>✕</span>
+                </div>
+            )}
             {showHighlight && (
                 <div
                     className="valid-square-highlight"

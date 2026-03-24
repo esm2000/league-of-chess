@@ -1,6 +1,6 @@
 # League of Chess - Agent Guide
 
-Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference.
+Chess variant with MOBA-style mechanics (modified pieces, neutral monsters, buff systems). See [README.md](README.md) for full game rules and roadmap. See [docs/architecture.md](docs/architecture.md) for detailed module and structure reference. See [docs/cpu-eval-research.md](docs/cpu-eval-research.md) for compiled research on chess evaluation algorithms and search (material, PSTs, mobility, alpha-beta, quiescence, tapered eval) adapted for this variant.
 
 ## Tech Stack
 
@@ -64,6 +64,18 @@ docker compose up mongo
 - Use `replace_one()` not `update_one()`; always use `ObjectId(id)` for queries
 - `_id` converted to string `id` for API responses
 
+### Debugging with Game History & Bug Reports
+- **Bug reports** are stored in `game_db.bug_reports` — query with `db.bug_reports.find().sort({_id: -1}).limit(N)` to get the latest reports. Each contains `game_id`, `turn`, `description`, `region`, and `timestamp`.
+- **Game state history** is stored in `game_db.game_state_history` — every state update is snapshotted (pruned to the last 10 turns). Query by game ID to reconstruct what happened:
+  ```bash
+  docker compose exec mongo mongosh --quiet --eval "
+  db.getSiblingDB('game_db').game_state_history
+    .find({game_id: '<id>'}).sort({turn_count: 1}).toArray()
+    .forEach(s => { print('Turn ' + s.turn_count, JSON.stringify(s.latest_movement)) })
+  "
+  ```
+- **Investigation workflow**: When a bug report comes in, always check `game_state_history` for the reported `game_id` and `turn` before reading code — the board state and `latest_movement` records usually reveal the root cause faster than guessing.
+
 ### Testing
 - Unit tests: `mocks/empty_game.py`, direct `moves.get_moves()`, no DB
 - Integration tests: `mocks/starting_game.py`, FastAPI test client, `select_and_move_*()` helpers
@@ -85,4 +97,4 @@ Update AGENTS.md in the same commit when changing conventions, workflow, or tech
 
 **Keep all agent guide files in sync:** When updating this file, apply the same changes to `CLAUDE.md` (Claude) and `GEMINI.md` (Gemini). When updating the roadmap, apply changes to `README.md` as well.
 
-Last Updated: 2026-03-15
+Last Updated: 2026-03-23

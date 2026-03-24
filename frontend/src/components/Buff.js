@@ -19,7 +19,8 @@ const Buff = (props) => {
                 // className={pickClassName()}
                 style={{
                     top: `${topPosition}vw`,
-                    left: `${leftPosition}vw`
+                    left: `${leftPosition}vw`,
+                    pointerEvents: 'none'
                 }}
             />
             }
