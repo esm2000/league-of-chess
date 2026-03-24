@@ -186,6 +186,7 @@ class GameState(TypedDict, total=False):
     bishop_special_captures: list[BishopSpecialCapture]
 
     queen_reset: bool
+    queen_reset_type: Optional[str]
 
     latest_movement: LatestMovement
 

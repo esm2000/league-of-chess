@@ -87,6 +87,7 @@ def manage_turn_progression(old_game_state: GameState, new_game_state: GameState
     # queen turn logic
     if new_game_state["queen_reset"] and should_increment_turn_count:
         new_game_state["queen_reset"] = False
+        new_game_state["queen_reset_type"] = None
     else:
         should_increment_turn_count = utils.reset_queen_turn_on_kill_or_assist(
             old_game_state, new_game_state, moved_pieces, should_increment_turn_count

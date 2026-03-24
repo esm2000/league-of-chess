@@ -21,18 +21,23 @@ def reset_queen_turn_on_kill_or_assist(old_game_state: GameState, new_game_state
                     )
 
                     enemy_side = "black" if moving_side == "white" else "white"
+                    queen_moved_to = None
+                    for mp in moved_pieces:
+                        if mp["piece"].get("type") == f"{moving_side}_queen" and mp["current_position"][0] is not None:
+                            queen_moved_to = mp["current_position"]
+
                     for moved_piece in moved_pieces:
                         if moved_piece["current_position"][0] is None and \
                         moved_piece["side"] == enemy_side and \
                         (
-                            # assist condition for queen reset
                             moved_piece["previous_position"] in queen_possible_moves_and_captures["possible_moves"] or \
-                            # capture condition for queen reset
                             moved_piece["previous_position"] in [capture_info[1] for capture_info in queen_possible_moves_and_captures["possible_captures"]]
                         ):
+                            is_kill = queen_moved_to == moved_piece["previous_position"]
                             new_game_state["queen_reset"] = True
+                            new_game_state["queen_reset_type"] = "kill" if is_kill else "assist"
                             should_increment_turn_count = False
-                            logger.debug("Not incrementing turn count: queen reset triggered on kill or assist")
+                            logger.debug(f"Not incrementing turn count: queen reset triggered on {'kill' if is_kill else 'assist'}")
     return should_increment_turn_count
 
 

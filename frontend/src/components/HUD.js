@@ -9,6 +9,7 @@ const HUD = (props) => {
     const gameState = GameStateContextData()
     const turnCount = gameState.turnCount
     const queenReset = gameState.queenReset
+    const queenResetType = gameState.queenResetType
     const bishopSpecialCaptures = gameState.bishopSpecialCaptures
     const goldCount = gameState.goldCount?.[PLAYERS[0]] || 0
     const enemyGoldCount = gameState.goldCount?.[PLAYERS[1]] || 0
@@ -130,7 +131,7 @@ const HUD = (props) => {
                                 fontSize: `${isMobile ? 1.6 : 0.8}vw`,
                                 color: 'rgb(255, 215, 0)',
                                 display: 'inline-block',
-                            }}>Queen Reset</span>
+                            }}>Queen {queenResetType === 'kill' ? 'Kill' : 'Assist'}</span>
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: `${isMobile ? 0.6 : 0.3}vw` }}>

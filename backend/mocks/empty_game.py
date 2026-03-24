@@ -19,6 +19,7 @@ empty_game = {
     "bishop_special_captures": [],
     "latest_movement": {},
     "queen_reset": False,
+    "queen_reset_type": None,
     "neutral_attack_log": {},
     "check": {"white": False, "black": False},
     "castle_log": {

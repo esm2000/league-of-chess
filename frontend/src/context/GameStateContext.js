@@ -38,6 +38,7 @@ const createInitialGameState = () => ({
     bishopSpecialCaptures: [],
     latestMovement: {},
     queenReset: false,
+    queenResetType: null,
     neutralAttackLog: {},
     check: {
         [PLAYERS[0]]: false,

@@ -44,6 +44,7 @@ class GameStateRequest(BaseModel, extra=Extra.allow):
     bishop_special_captures: list
     latest_movement: dict
     queen_reset: bool
+    queen_reset_type: str = None
     neutral_attack_log: dict
     check: dict
     castle_log: dict
