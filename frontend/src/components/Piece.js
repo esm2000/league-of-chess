@@ -463,7 +463,7 @@ const Piece = (props) => {
                                     ),
                                     fontSize: `${isMobile ? 1.4 : 0.7}vw`,
                                     cursor: isBlack ? 'default' : 'pointer',
-                                    opacity: isBlack ? 0.9 : 1,
+                                    opacity: isBlack ? 0.7 : 1,
                                 }}
                                 onClick={isBlack ? undefined : () => handleCastleButtonClick(move)}
                                 disabled={isBlack}
