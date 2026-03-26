@@ -449,9 +449,8 @@ const Piece = (props) => {
             {
                 props.castleMoves?.length > 0 ?
                 <div>
-                    {props.castleMoves.map((move) => {
+                    {(() => { const isBlack = props.side === 'black'; return props.castleMoves.map((move) => {
                         const isQueenside = move[1] === 2
-                        const isBlack = props.side === 'black'
                         return (
                             <button
                                 key={`castle-${move[1]}`}
@@ -470,7 +469,7 @@ const Piece = (props) => {
                                 disabled={isBlack}
                             >{isQueenside ? "Castle Left" : "Castle Right"}</button>
                         )
-                    })}
+                    })})()}
                 </div>
                 : null
             }
