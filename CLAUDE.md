@@ -36,6 +36,9 @@ PYTHONPATH="$PWD/backend" pytest -v -s -x -k "dragon"            # verbose, prin
 docker compose up --build
 
 # Docker Compose (MongoDB only, for local dev)
+# If this fails with "Cannot connect to the Docker daemon", start Docker Desktop first:
+#   open -a "Docker Desktop"
+# Then wait a few seconds for the daemon to be ready before retrying.
 docker compose up mongo
 ```
 

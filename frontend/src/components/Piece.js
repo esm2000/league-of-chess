@@ -3,10 +3,11 @@ import React from 'react';
 import  { updateGameState, GameStateContextData }  from '../context/GameStateContext';
 
 import { 
-    PLAYERS, 
-    IMAGE_MAP, 
-    MAX_BOSS_HEALTH, 
-    useIsMobile, 
+    PLAYERS,
+    IMAGE_MAP,
+    MAX_BOSS_HEALTH,
+    CASTLE_BUTTON_COLORS,
+    useIsMobile,
     snakeToCamel,
     camelToSnake
 } from '../utility';
@@ -448,7 +449,7 @@ const Piece = (props) => {
             {
                 props.castleMoves?.length > 0 ?
                 <div>
-                    {props.castleMoves.map((move) => {
+                    {(() => { const isBlack = props.side === 'black'; return props.castleMoves.map((move) => {
                         const isQueenside = move[1] === 2
                         return (
                             <button
@@ -457,14 +458,18 @@ const Piece = (props) => {
                                     ...pieceActionBtnStyle(
                                         -(isMobile ? 2.5 : 1.25),
                                         isQueenside ? -(isMobile ? 8 : 4) : (isMobile ? 5.5 : 2.75),
-                                        '#63bbf2', '#24a0ed'
+                                        CASTLE_BUTTON_COLORS[isBlack ? 'black' : 'white'][0],
+                                        CASTLE_BUTTON_COLORS[isBlack ? 'black' : 'white'][1]
                                     ),
                                     fontSize: `${isMobile ? 1.4 : 0.7}vw`,
+                                    cursor: isBlack ? 'default' : 'pointer',
+                                    opacity: isBlack ? 0.7 : 1,
                                 }}
-                                onClick={() => handleCastleButtonClick(move)}
+                                onClick={isBlack ? undefined : () => handleCastleButtonClick(move)}
+                                disabled={isBlack}
                             >{isQueenside ? "Castle Left" : "Castle Right"}</button>
                         )
-                    })}
+                    })})()}
                 </div>
                 : null
             }
