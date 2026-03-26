@@ -324,3 +324,37 @@ def test_skip_one_turn_if_all_non_king_pieces_are_stunned(game):
         assert not game["board_state"][0][0][0].get("is_stunned", False)
         assert not game["board_state"][0][1][0].get("is_stunned", False)
         assert not game["board_state"][1][1][0].get("is_stunned", False)
+
+
+@pytest.mark.parametrize(
+    "monster_type, monster_pos, pawn_pos, queen_start_pos, queen_end_pos",
+    [
+        ("neutral_dragon", [4, 7], [3, 5], [5, 7], [4, 6]),
+        ("neutral_board_herald", [3, 0], [2, 2], [4, 1], [3, 1]),
+        ("neutral_baron_nashor", [3, 0], [2, 2], [4, 1], [3, 1]),
+    ],
+)
+def test_queen_stun_does_not_affect_neutral_monsters(
+    game, monster_type, monster_pos, pawn_pos, queen_start_pos, queen_end_pos
+):
+    game = clear_game(game)
+
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["board_state"][monster_pos[0]][monster_pos[1]] = [{"type": monster_type, "health": 5, "turn_spawned": 0}]
+    game_on_next_turn["board_state"][pawn_pos[0]][pawn_pos[1]] = [{"type": "black_pawn"}]
+    game_on_next_turn["board_state"][queen_start_pos[0]][queen_start_pos[1]] = [{"type": "white_queen"}]
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    game = select_and_move_white_piece(
+        game=game, from_row=queen_start_pos[0], from_col=queen_start_pos[1], to_row=queen_end_pos[0], to_col=queen_end_pos[1]
+    )
+
+    # Black pawn should be stunned
+    pawn = game["board_state"][pawn_pos[0]][pawn_pos[1]][0]
+    assert pawn["type"] == "black_pawn"
+    assert pawn.get("is_stunned", False)
+
+    # Neutral monster should NOT be stunned
+    monster = next(p for p in game["board_state"][monster_pos[0]][monster_pos[1]] if p["type"] == monster_type)
+    assert not monster.get("is_stunned", False)
