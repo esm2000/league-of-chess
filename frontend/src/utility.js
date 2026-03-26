@@ -87,6 +87,10 @@ const BOSS_SQUARE_COLORS = {
     "board_herald": ["rgb(79, 22, 144)", "rgb(134, 73, 203)"],
     "baron_nashor": ["rgb(45, 13, 81)", "rgb(97, 61, 138)"]
 }
+const CASTLE_BUTTON_COLORS = {
+    white: ['#63bbf2', '#24a0ed'],
+    black: ['#f26363', '#ed2424']
+}
 const UNSAFE_KING_SQUARE_COLOR = "rgba(186, 0, 0, 0.3)"
 const LIGHT_BLUE_SQUARE_COLOR = "rgb(102, 216, 242)"
 const WHITE_SHOP_SQUARE_COLOR = "rgb(51, 171, 55)"
@@ -365,6 +369,7 @@ export {
     BARON_NASHOR_POSITION,
     MAX_BOSS_HEALTH,
     LIGHT_BLUE_SQUARE_COLOR,
+    CASTLE_BUTTON_COLORS,
     UNSAFE_KING_SQUARE_COLOR,
     BASE_API_URL,
     getPiecePrice,

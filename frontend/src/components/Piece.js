@@ -3,10 +3,11 @@ import React from 'react';
 import  { updateGameState, GameStateContextData }  from '../context/GameStateContext';
 
 import { 
-    PLAYERS, 
-    IMAGE_MAP, 
-    MAX_BOSS_HEALTH, 
-    useIsMobile, 
+    PLAYERS,
+    IMAGE_MAP,
+    MAX_BOSS_HEALTH,
+    CASTLE_BUTTON_COLORS,
+    useIsMobile,
     snakeToCamel,
     camelToSnake
 } from '../utility';
@@ -458,8 +459,8 @@ const Piece = (props) => {
                                     ...pieceActionBtnStyle(
                                         -(isMobile ? 2.5 : 1.25),
                                         isQueenside ? -(isMobile ? 8 : 4) : (isMobile ? 5.5 : 2.75),
-                                        isBlack ? '#f26363' : '#63bbf2',
-                                        isBlack ? '#ed2424' : '#24a0ed'
+                                        CASTLE_BUTTON_COLORS[isBlack ? 'black' : 'white'][0],
+                                        CASTLE_BUTTON_COLORS[isBlack ? 'black' : 'white'][1]
                                     ),
                                     fontSize: `${isMobile ? 1.4 : 0.7}vw`,
                                     cursor: isBlack ? 'default' : 'pointer',
