@@ -324,3 +324,48 @@ def test_skip_one_turn_if_all_non_king_pieces_are_stunned(game):
         assert not game["board_state"][0][0][0].get("is_stunned", False)
         assert not game["board_state"][0][1][0].get("is_stunned", False)
         assert not game["board_state"][1][1][0].get("is_stunned", False)
+
+
+def test_queen_stun_does_not_affect_neutral_monsters(game):
+    # Place white queen adjacent to a neutral dragon and a black pawn
+    # Move queen next to both — black pawn should be stunned, dragon should not
+    game = clear_game(game)
+
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["board_state"][4][7] = [{"type": "neutral_dragon", "health": 5, "turn_spawned": 0}]
+    game_on_next_turn["board_state"][3][5] = [{"type": "black_pawn"}]
+    game_on_next_turn["board_state"][5][7] = [{"type": "white_queen"}]
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    # Select then move white queen to [4, 6], adjacent to both dragon at [4, 7] and pawn at [3, 5]
+    game = select_and_move_white_piece(game=game, from_row=5, from_col=7, to_row=4, to_col=6)
+
+    # Black pawn should be stunned
+    assert game["board_state"][3][5][0]["type"] == "black_pawn"
+    assert game["board_state"][3][5][0].get("is_stunned", False)
+
+    # Neutral dragon should NOT be stunned
+    dragon = next(p for p in game["board_state"][4][7] if p["type"] == "neutral_dragon")
+    assert not dragon.get("is_stunned", False)
+
+    # Also test with board herald
+    game = clear_game(game)
+
+    game_on_next_turn = copy.deepcopy(game)
+    game_on_next_turn["board_state"][3][0] = [{"type": "neutral_board_herald", "health": 5, "turn_spawned": 0}]
+    game_on_next_turn["board_state"][2][2] = [{"type": "black_pawn"}]
+    game_on_next_turn["board_state"][4][1] = [{"type": "white_queen"}]
+    game_state = api.GameStateRequest(**game_on_next_turn)
+    game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+    # Move queen to [3, 1], adjacent to both herald at [3, 0] and pawn at [2, 2]
+    game = select_and_move_white_piece(game=game, from_row=4, from_col=1, to_row=3, to_col=1)
+
+    # Black pawn should be stunned
+    assert game["board_state"][2][2][0]["type"] == "black_pawn"
+    assert game["board_state"][2][2][0].get("is_stunned", False)
+
+    # Neutral board herald should NOT be stunned
+    herald = next(p for p in game["board_state"][3][0] if p["type"] == "neutral_board_herald")
+    assert not herald.get("is_stunned", False)

@@ -85,7 +85,7 @@ def apply_queen_stun(old_game_state: GameState, new_game_state: GameState, moved
                     if square:
                         for piece in square:
                             side = piece["type"].split("_")[0]
-                            if queen_side != side and "king" not in piece["type"]:
+                            if queen_side != side and "king" not in piece["type"] and side != "neutral":
                                 piece["is_stunned"] = True
                                 piece["turn_stunned_for"] = old_game_state["turn_count"] + 1
 
