@@ -168,8 +168,9 @@ const Board = () => {
                                                         markedForDeath={piece.markedForDeath}
                                                         boardHeraldBuff={piece.boardHeraldBuff}
                                                         neutralBuffLog={gameState.neutralBuffLog}
-                                                        // Only white king gets castle buttons; black castling is handled by AI
-                                                        castleMoves={piece.type === "white_king" ? castleMoves : []}
+                                                        castleMoves={piece.type === "white_king" ? castleMoves.filter(m => m[0] === 7)
+                                                            : piece.type === "black_king" ? castleMoves.filter(m => m[0] === 0)
+                                                            : []}
                                                     />
                                                 );
                                         }));

@@ -450,6 +450,7 @@ const Piece = (props) => {
                 <div>
                     {props.castleMoves.map((move) => {
                         const isQueenside = move[1] === 2
+                        const isBlack = props.side === 'black'
                         return (
                             <button
                                 key={`castle-${move[1]}`}
@@ -457,11 +458,15 @@ const Piece = (props) => {
                                     ...pieceActionBtnStyle(
                                         -(isMobile ? 2.5 : 1.25),
                                         isQueenside ? -(isMobile ? 8 : 4) : (isMobile ? 5.5 : 2.75),
-                                        '#63bbf2', '#24a0ed'
+                                        isBlack ? '#f26363' : '#63bbf2',
+                                        isBlack ? '#ed2424' : '#24a0ed'
                                     ),
                                     fontSize: `${isMobile ? 1.4 : 0.7}vw`,
+                                    cursor: isBlack ? 'default' : 'pointer',
+                                    opacity: isBlack ? 0.9 : 1,
                                 }}
-                                onClick={() => handleCastleButtonClick(move)}
+                                onClick={isBlack ? undefined : () => handleCastleButtonClick(move)}
+                                disabled={isBlack}
                             >{isQueenside ? "Castle Left" : "Castle Right"}</button>
                         )
                     })}
