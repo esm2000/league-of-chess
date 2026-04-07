@@ -1634,3 +1634,32 @@ def test_pawn_with_four_or_more_dragon_buff_stacks_does_not_ignore_unit_collisio
         result = moves.get_moves_for_pawn(curr_game_state, prev_game_state, [pawn_row, 3])
 
         assert [pawn_row + 2*modifier, 3] not in result["possible_moves"]
+
+
+def test_pawn_with_dragon_buff_on_starting_row_has_no_duplicate_possible_moves():
+    ## Regression: dragon_buff=1 pawn on starting row produced [row-2, col] twice
+    ## (once from starting-row two-square logic and once from dragon extended range)
+    ##    0  1  2  3  4  5  6  7
+    ## 0 |__|##|__|##|__|##|__|##|
+    ## 1 |##|__|##|__|##|__|##|__|
+    ## 2 |__|##|__|##|__|##|__|##|
+    ## 3 |##|__|##|__|##|__|##|__|
+    ## 4 |__|##|__|##|__|##|__|##|
+    ## 5 |##|__|##|__|##|__|##|__|
+    ## 6 |__|##|__|wp^|__|##|__|##|
+    ## 7 |##|__|##|__|##|__|##|__|
+    ## wp^=dragon_buff=1
+    for side in ["white", "black"]:
+        starting_row = 6 if side == "white" else 1
+        modifier = -1 if side == "white" else 1
+
+        curr_game_state = copy.deepcopy(empty_game)
+        curr_game_state["board_state"][starting_row][3] = [{"type": f"{side}_pawn", "dragon_buff": 1}]
+        prev_game_state = copy.deepcopy(curr_game_state)
+
+        result = moves.get_moves_for_pawn(curr_game_state, prev_game_state, [starting_row, 3])
+
+        two_ahead = [starting_row + 2*modifier, 3]
+        assert two_ahead in result["possible_moves"]
+        assert result["possible_moves"].count(two_ahead) == 1, \
+            f"Duplicate move {two_ahead} in possible_moves: {result['possible_moves']}"
