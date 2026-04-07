@@ -267,7 +267,8 @@ def invalidate_game_if_player_moves_and_is_in_check(is_valid_game_state: bool, o
                     are_pieces_marked_for_death_in_new_game = True
 
     for moved_piece in moved_pieces:
-        if moved_piece["previous_position"][0] is not None and moved_piece["previous_position"][1] is not None:
+        if moved_piece["previous_position"][0] is not None and moved_piece["previous_position"][1] is not None \
+                and moved_piece["current_position"][0] is not None and moved_piece["current_position"][1] is not None:
             side = moved_piece["side"]
             if side == "neutral":
                 continue
