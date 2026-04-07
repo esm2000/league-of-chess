@@ -42,6 +42,12 @@ def process_possible_moves_dict(curr_game_state: GameState, curr_position: Posit
         possible_moves_dict["possible_captures"] = [capture for capture in possible_moves_dict["possible_captures"] if capture[0] != curr_game_state["sword_in_the_stone_position"]]
 
     # remove duplicates
+    possible_moves_with_no_duplicates = []
+    for entry in possible_moves_dict["possible_moves"]:
+        if entry not in possible_moves_with_no_duplicates:
+            possible_moves_with_no_duplicates.append(entry)
+    possible_moves_dict["possible_moves"] = possible_moves_with_no_duplicates
+
     possible_captures_with_no_duplicates = []
     for entry in possible_moves_dict["possible_captures"]:
         if entry not in possible_captures_with_no_duplicates:

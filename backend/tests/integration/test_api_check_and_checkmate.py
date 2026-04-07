@@ -637,3 +637,61 @@ def test_checkmate_not_declared_when_marked_for_death_surrender_opens_escape(gam
         assert not game[f"{side}_defeat"]
         assert game["board_state"][0][1][0].get("type") == f"{opposite_side}_king"
         assert not game["board_state"][0][0]
+
+
+def test_capturing_opponent_piece_while_opponent_is_in_check(game):
+    # Regression: capturing an enemy piece while that enemy is in check
+    # should not be rejected as "opponent moved while in check"
+    for side in ["white", "black"]:
+        opposite_side = "white" if side == "black" else "black"
+        game = clear_game(game)
+        game_on_next_turn = copy.deepcopy(game)
+
+        # Set up: attacker's rook one square away from checking the defender's king,
+        # defender has a knight on the rook's file that can be captured after check
+        game_on_next_turn["board_state"][3][2] = [{"type": f"{side}_rook"}]
+        game_on_next_turn["board_state"][0][2] = [{"type": f"{opposite_side}_knight"}]
+        game_on_next_turn["board_state"][1][0] = [{"type": f"{opposite_side}_king"}]
+        game_on_next_turn["board_state"][7][4] = [{"type": f"{side}_king"}]
+
+        # white moves on even turns, black on odd
+        game_on_next_turn["turn_count"] = 0 if side == "white" else 1
+
+        game_state = api.GameStateRequest(**game_on_next_turn)
+        game = api.update_game_state_no_restrictions(game["id"], game_state, Response())
+
+        # Move rook to [1][2] to put defender in check
+        if side == "white":
+            game = select_and_move_white_piece(game, from_row=3, from_col=2, to_row=1, to_col=2)
+        else:
+            game = select_and_move_black_piece(game, from_row=3, from_col=2, to_row=1, to_col=2)
+
+        assert game["check"][opposite_side]
+        assert not game["check"][side]
+
+        # Defender must escape check — move king out of the way
+        if opposite_side == "white":
+            game = select_and_move_white_piece(game, from_row=1, from_col=0, to_row=0, to_col=0)
+        else:
+            game = select_and_move_black_piece(game, from_row=1, from_col=0, to_row=0, to_col=0)
+
+        assert not game["check"][opposite_side]
+
+        # Attacker's rook captures the knight at [0][2], putting defender back in check
+        if side == "white":
+            game = select_white_piece(game, row=1, col=2)
+        else:
+            game = select_black_piece(game, row=1, col=2)
+
+        game_on_next_turn = copy.deepcopy(game)
+        game_on_next_turn["board_state"][0][2] = game_on_next_turn["board_state"][1][2]
+        game_on_next_turn["board_state"][1][2] = None
+        game_on_next_turn["captured_pieces"][side].append(f"{opposite_side}_knight")
+
+        game_state = api.GameStateRequest(**game_on_next_turn)
+        game = api.update_game_state(game["id"], game_state, Response(), player=side == "white")
+
+        # Move should succeed — attacker captured a piece, not the opponent moving
+        assert f"{opposite_side}_knight" in game["captured_pieces"][side]
+        assert game["board_state"][0][2][0]["type"] == f"{side}_rook"
+        assert not game["board_state"][1][2]
