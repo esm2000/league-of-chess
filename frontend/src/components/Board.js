@@ -55,6 +55,12 @@ const Board = () => {
     }, [])
 
     useEffect(() => {
+        return () => {
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+        }
+    }, [])
+
+    useEffect(() => {
         if (turnCount <= 0) {
             setPawnExchangePosition(null)
             return
