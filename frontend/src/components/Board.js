@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+const BOARD_FLASH_DURATION = 1200
+
 import Background from './Background';
 import Piece from './Piece';
 import PossibleMove from './PossibleMove';
@@ -51,7 +53,7 @@ const Board = () => {
         flashTimerRef.current = setTimeout(() => {
             setBoardFlashClass('')
             setBoardFlashLabel('')
-        }, 1200)
+        }, BOARD_FLASH_DURATION)
     }, [])
 
     useEffect(() => {
