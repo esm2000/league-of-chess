@@ -253,6 +253,71 @@ progress {
     animation: queen-reset-pulse 0.8s ease-out forwards;
 }
 
+@keyframes board-flash-green {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    60% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
+
+@keyframes board-flash-red {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    60% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
+
+@keyframes board-flash-label {
+    0% { opacity: 0; transform: scale(0.8); }
+    10% { opacity: 0.9; transform: scale(1.1); }
+    25% { opacity: 0.75; transform: scale(1); }
+    70% { opacity: 0.6; }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+.board-flash-green, .board-flash-red {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 90;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.board-flash-green {
+    background: radial-gradient(
+        ellipse at center,
+        rgba(80, 220, 80, 0.55) 0%,
+        rgba(60, 180, 60, 0.35) 50%,
+        rgba(40, 140, 40, 0.15) 100%
+    );
+    animation: board-flash-green 1.2s ease-out forwards;
+}
+
+.board-flash-red {
+    background: radial-gradient(
+        ellipse at center,
+        rgba(230, 60, 60, 0.55) 0%,
+        rgba(190, 40, 40, 0.35) 50%,
+        rgba(150, 30, 30, 0.15) 100%
+    );
+    animation: board-flash-red 1.2s ease-out forwards;
+}
+
+.board-flash-label {
+    font-family: 'Basic';
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 0.8vw rgba(0, 0, 0, 0.7);
+    letter-spacing: 0.15vw;
+    text-transform: uppercase;
+    animation: board-flash-label 1.2s ease-out forwards;
+}
+
 @keyframes reconnect-fade {
     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
     10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
