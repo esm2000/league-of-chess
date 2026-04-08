@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+const BOARD_FLASH_DURATION = 1200
 
 import Background from './Background';
 import Piece from './Piece';
@@ -40,6 +42,25 @@ const Board = () => {
 
     const [shopPieceSelected, setShopPieceSelected] = useState(null)
     const [pawnExchangePosition, setPawnExchangePosition] = useState(null)
+    const [boardFlashClass, setBoardFlashClass] = useState('')
+    const [boardFlashLabel, setBoardFlashLabel] = useState('')
+    const flashTimerRef = useRef(null)
+
+    const handleFlash = useCallback((color, label) => {
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+        setBoardFlashClass(`board-flash-${color}`)
+        setBoardFlashLabel(label || '')
+        flashTimerRef.current = setTimeout(() => {
+            setBoardFlashClass('')
+            setBoardFlashLabel('')
+        }, BOARD_FLASH_DURATION)
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current)
+        }
+    }, [])
 
     useEffect(() => {
         if (turnCount <= 0) {
@@ -229,11 +250,21 @@ const Board = () => {
                         {reconnectMessage}
                     </div>
                 )}
+                {boardFlashClass && (
+                    <div className={boardFlashClass}>
+                        {boardFlashLabel && (
+                            <span className="board-flash-label" style={{
+                                fontSize: `${isMobile ? 4 : 2}vw`,
+                            }}>{boardFlashLabel}</span>
+                        )}
+                    </div>
+                )}
                 </div>
             </div>
             <HUD
                 shopPieceSelected={shopPieceSelected}
                 setShopPieceSelected={setShopPieceSelected}
+                onFlash={handleFlash}
             />
             <CapturedPieces 
                 side={PLAYERS[0]}

@@ -23,9 +23,10 @@ const HUD = (props) => {
     const prevBishopCaptures = useRef(bishopSpecialCaptures?.length ?? 0)
     const isInitialLoad = useRef(true)
 
-    const triggerFlash = (isPlayerTurn) => {
+    const triggerFlash = (isPlayerTurn, label) => {
         const flashClass = isPlayerTurn ? 'turn-flash-green' : 'turn-flash-red'
         setTurnFlashClass(flashClass)
+        props.onFlash?.(isPlayerTurn ? 'green' : 'red', label)
         const timer = setTimeout(() => setTurnFlashClass(''), 1000)
         return () => clearTimeout(timer)
     }
@@ -46,7 +47,7 @@ const HUD = (props) => {
         const currIsPlayerTurn = turnCount % 2 === 0
 
         if (prevIsPlayerTurn === currIsPlayerTurn) {
-            return triggerFlash(currIsPlayerTurn)
+            return triggerFlash(currIsPlayerTurn, 'Turn Skip')
         }
     }, [turnCount])
 
@@ -56,7 +57,7 @@ const HUD = (props) => {
 
         if (!prev && queenReset) {
             const isPlayerTurn = turnCount % 2 === 0
-            return triggerFlash(isPlayerTurn)
+            return triggerFlash(isPlayerTurn, queenResetType === 'kill' ? 'Queen Kill' : 'Queen Assist')
         }
     }, [queenReset, turnCount])
 
@@ -67,7 +68,7 @@ const HUD = (props) => {
 
         if (currLen > prevLen) {
             const isPlayerTurn = turnCount % 2 === 0
-            return triggerFlash(isPlayerTurn)
+            return triggerFlash(isPlayerTurn, 'Bishop Capture')
         }
     }, [bishopSpecialCaptures, turnCount])
 
