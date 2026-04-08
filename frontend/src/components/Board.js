@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const BOARD_FLASH_DURATION = 1200
-
 import Background from './Background';
 import Piece from './Piece';
 import PossibleMove from './PossibleMove';
@@ -18,6 +16,7 @@ import { GameStateContextData }  from '../context/GameStateContext';
 
 import { PLAYERS, pickSide, snakeToCamel, useIsMobile } from '../utility';
 
+const BOARD_FLASH_DURATION = 1200
 const FRAME_BG_COLOR = 'rgb(71, 33, 1)'
 const FRAME_BORDER_COLOR = 'rgb(50, 23, 0)'
 const FRAME_BEVEL_LIGHT = 'rgb(125, 59, 2)'
