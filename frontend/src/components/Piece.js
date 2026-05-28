@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 import  { updateGameState, GameStateContextData }  from '../context/GameStateContext';
 
@@ -18,6 +18,11 @@ const Piece = (props) => {
     const isMobile = useIsMobile()
     const topPosition = props.row * 3.7 * (isMobile ? 2: 1)
     const leftPosition = props.col * 3.7 * (isMobile ? 2: 1)
+
+    const [showPurchaseFlash, setShowPurchaseFlash] = useState(props.purchased)
+    useEffect(() => {
+        if (props.purchased) setShowPurchaseFlash(true)
+    }, [props.purchased])
 
     const handlePieceClick = () => {
         if (gameState.isReplaying) return
@@ -332,18 +337,18 @@ const Piece = (props) => {
             <img
                 src={IMAGE_MAP[image_src]}
                 alt={image_src}
-                className={`${className}${props.purchased ? ' piece-purchased' : ''}`}
+                className={`${className}${showPurchaseFlash ? ' piece-purchased' : ''}`}
                 style={{
                     top: `${topPosition}vw`,
                     left: `${leftPosition}vw`
                 }}
                 onClick={() => handlePieceClick()}
             />
-            {props.purchased && (
+            {showPurchaseFlash && (
                 <div className="piece-purchased-overlay" style={{
                     top: `${topPosition}vw`,
                     left: `${leftPosition}vw`,
-                }} />
+                }} onAnimationEnd={() => setShowPurchaseFlash(false)} />
             )}
             {props.health ?
                 <div style={{
