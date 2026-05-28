@@ -133,25 +133,43 @@ def prevent_client_side_updates_to_graveyard(old_game_state: GameState, new_game
 
 
 def record_moved_pieces_this_turn(new_game_state: GameState, moved_pieces: list[MovedPiece]) -> None:
-    """Store actual board moves (not spawns/captures) in latest_movement for bishop energize tracking."""
+    """Store board moves in latest_movement and spawns in latest_spawns.
+
+    latest_movement only tracks actual board moves (not spawns/captures) for
+    bishop energize tracking. Spawned pieces (purchases) are stored separately
+    in latest_spawns so they never overwrite the bishop movement record.
+    """
     def is_captured_or_spawned(moved_pieces_entry: MovedPiece) -> bool:
         return moved_pieces_entry["previous_position"][0] is None \
         or  moved_pieces_entry["current_position"][0] is None
     filtered_moved_pieces = [entry for entry in moved_pieces if not is_captured_or_spawned(entry)]
-    spawned_pieces = [entry for entry in moved_pieces if entry["previous_position"][0] is None and entry["current_position"][0] is not None]
 
-    if filtered_moved_pieces or spawned_pieces:
-        record = filtered_moved_pieces
-        if spawned_pieces:
-            record = record + [{"piece": entry["piece"], "side": entry["side"],
-                                "previous_position": entry["previous_position"],
-                                "current_position": entry["current_position"],
-                                "spawned": True} for entry in spawned_pieces]
+    if filtered_moved_pieces:
         new_game_state["latest_movement"] = {
             "turn_count": new_game_state["turn_count"],
-            "record": record
+            "record": filtered_moved_pieces
         }
 
-    # keep the previous record if there are no new moved pieces
+    # keep the previous latest_movement record if there are no new moved pieces
     # to faciliate record keeping for granting bishop energize stacks
     # to bishops that perform special captures with their debuff
+
+    # Store spawned pieces separately so purchase indicators work without
+    # interfering with bishop debuff resolution
+    spawned_records = []
+    for entry in moved_pieces:
+        if entry["previous_position"][0] is None and entry["current_position"][0] is not None:
+            spawned_records.append({
+                "piece": entry["piece"],
+                "side": entry["side"],
+                "previous_position": entry["previous_position"],
+                "current_position": entry["current_position"],
+            })
+
+    if spawned_records:
+        new_game_state["latest_spawns"] = {
+            "turn_count": new_game_state["turn_count"],
+            "record": spawned_records
+        }
+    else:
+        new_game_state["latest_spawns"] = {}
