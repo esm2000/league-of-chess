@@ -332,13 +332,19 @@ const Piece = (props) => {
             <img
                 src={IMAGE_MAP[image_src]}
                 alt={image_src}
-                className={className}
+                className={`${className}${props.purchased ? ' piece-purchased' : ''}`}
                 style={{
                     top: `${topPosition}vw`,
                     left: `${leftPosition}vw`
                 }}
                 onClick={() => handlePieceClick()}
             />
+            {props.purchased && (
+                <div className="piece-purchased-overlay" style={{
+                    top: `${topPosition}vw`,
+                    left: `${leftPosition}vw`,
+                }} />
+            )}
             {props.health ?
                 <div style={{
                     position: 'absolute',

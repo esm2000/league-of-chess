@@ -38,6 +38,7 @@ const Board = () => {
     const whiteDefeat = gameState.whiteDefeat
 
     const reconnectMessage = gameState.reconnectMessage
+    const latestMovement = gameState.latestMovement
 
     const [shopPieceSelected, setShopPieceSelected] = useState(null)
     const [pawnExchangePosition, setPawnExchangePosition] = useState(null)
@@ -191,6 +192,8 @@ const Board = () => {
                                                         castleMoves={piece.type === "white_king" ? castleMoves.filter(m => m[0] === 7)
                                                             : piece.type === "black_king" ? castleMoves.filter(m => m[0] === 0)
                                                             : []}
+                                                        purchased={latestMovement?.turnCount === turnCount &&
+                                                            latestMovement?.record?.some(r => r.spawned && r.currentPosition?.[0] === row && r.currentPosition?.[1] === col)}
                                                     />
                                                 );
                                         }));

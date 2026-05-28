@@ -138,11 +138,18 @@ def record_moved_pieces_this_turn(new_game_state: GameState, moved_pieces: list[
         return moved_pieces_entry["previous_position"][0] is None \
         or  moved_pieces_entry["current_position"][0] is None
     filtered_moved_pieces = [entry for entry in moved_pieces if not is_captured_or_spawned(entry)]
+    spawned_pieces = [entry for entry in moved_pieces if entry["previous_position"][0] is None and entry["current_position"][0] is not None]
 
-    if filtered_moved_pieces:
+    if filtered_moved_pieces or spawned_pieces:
+        record = filtered_moved_pieces
+        if spawned_pieces:
+            record = record + [{"piece": entry["piece"], "side": entry["side"],
+                                "previous_position": entry["previous_position"],
+                                "current_position": entry["current_position"],
+                                "spawned": True} for entry in spawned_pieces]
         new_game_state["latest_movement"] = {
             "turn_count": new_game_state["turn_count"],
-            "record": filtered_moved_pieces
+            "record": record
         }
 
     # keep the previous record if there are no new moved pieces
