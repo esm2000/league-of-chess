@@ -345,7 +345,7 @@ const Piece = (props) => {
                 onClick={() => handlePieceClick()}
             />
             {showPurchaseFlash && (
-                <div className="piece-purchased-overlay" style={{
+                <div className={`${className} piece-purchased-overlay`} style={{
                     top: `${topPosition}vw`,
                     left: `${leftPosition}vw`,
                 }} onAnimationEnd={() => setShowPurchaseFlash(false)} />

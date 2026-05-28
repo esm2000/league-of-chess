@@ -330,10 +330,6 @@ progress {
 }
 
 .piece-purchased-overlay {
-    position: absolute;
-    width: 1.8vw;
-    padding: 0vw 0.85vw 0.55vw;
-    height: 2.95vw;
     background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.8) 0%, rgba(255, 180, 0, 0.4) 60%, transparent 100%);
     pointer-events: none;
     z-index: 5;
@@ -368,11 +364,6 @@ progress {
         margin: 0;
     }
 
-    .piece-purchased-overlay {
-        width: 3.6vw;
-        padding: 0vw 1.70vw 1.1vw;
-        height: 5.9vw;
-    }
 
     .dragon_piece {
         position: absolute;
