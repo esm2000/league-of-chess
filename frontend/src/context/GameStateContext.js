@@ -37,6 +37,7 @@ const createInitialGameState = () => ({
     },
     bishopSpecialCaptures: [],
     latestMovement: {},
+    latestSpawns: {},
     queenReset: false,
     queenResetType: null,
     neutralAttackLog: {},
@@ -69,6 +70,7 @@ const GameStateContext = createContext({
     goldCount: null,
     bishopSpecialCaptures: [],
     latestMovement: null,
+    latestSpawns: null,
     queenReset: false,
     check: {white: false, black: false},
     castleLog: {

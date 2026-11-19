@@ -189,6 +189,7 @@ class GameState(TypedDict, total=False):
     queen_reset_type: Optional[str]
 
     latest_movement: LatestMovement
+    latest_spawns: LatestMovement
 
     neutral_attack_log: dict[str, NeutralAttackEntry]
     neutral_buff_log: NeutralBuffLog
