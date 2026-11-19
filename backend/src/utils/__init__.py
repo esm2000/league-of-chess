@@ -24,6 +24,7 @@ from .game_state import (
 # Validation functions
 from .validation import (
     INVALID_GAME_STATE_ERROR_MESSAGE,
+    INVALID_CPU_DIFFICULTY_ERROR_MESSAGE,
     check_to_see_if_more_than_one_piece_has_moved,
     invalidate_game_if_wrong_side_moves,
     invalidate_game_if_more_than_one_side_moved,

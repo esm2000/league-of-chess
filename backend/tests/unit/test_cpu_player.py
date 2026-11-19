@@ -3,6 +3,7 @@
 import copy
 
 from mocks.empty_game import empty_game
+import src.cpu_player as cpu_player
 from src.cpu_player import (
     get_all_valid_moves,
     get_marked_for_death_moves,
@@ -272,3 +273,91 @@ def test_is_pawn_promotion_needed_false_when_no_pawn():
     game = _make_game(turn_count=1)
     game["board_state"][6][3] = [{"type": "black_pawn", "pawn_buff": 0}]
     assert _is_pawn_promotion_needed(game) is False
+
+
+# ---------------------------------------------------------------------------
+# Difficulty and side-parameterised generation
+# ---------------------------------------------------------------------------
+
+def test_easy_never_uses_algorithm(monkeypatch):
+    monkeypatch.setattr(cpu_player.random, "random", lambda: 0.0)
+    assert cpu_player._should_use_algorithm("easy") is False
+
+
+def test_hard_always_uses_algorithm(monkeypatch):
+    monkeypatch.setattr(cpu_player.random, "random", lambda: 0.999)
+    assert cpu_player._should_use_algorithm("hard") is True
+
+
+def test_medium_uses_algorithm_on_coin_flip(monkeypatch):
+    monkeypatch.setattr(cpu_player.random, "random", lambda: 0.49)
+    assert cpu_player._should_use_algorithm("medium") is True
+    monkeypatch.setattr(cpu_player.random, "random", lambda: 0.5)
+    assert cpu_player._should_use_algorithm("medium") is False
+
+
+def test_unknown_difficulty_falls_back_to_random():
+    assert cpu_player._should_use_algorithm("impossible") is False
+
+
+def test_raw_moves_can_be_generated_for_white():
+    game = _make_game(turn_count=2)
+    game["board_state"][6][3] = [{"type": "white_pawn", "pawn_buff": 0}]
+    game["board_state"][3][3] = [{"type": "black_pawn", "pawn_buff": 0}]
+
+    white_moves = _get_raw_moves(game, "white")
+
+    assert {"type": "move", "from_pos": [6, 3], "to_pos": [5, 3]} in white_moves
+    assert all(m["from_pos"] == [6, 3] for m in white_moves)
+
+
+def test_simulate_move_for_white_capture():
+    game = _make_game(turn_count=2)
+    game["board_state"][0][4] = [{"type": "black_king"}]
+    game["board_state"][7][4] = [{"type": "white_king"}]
+    game["board_state"][4][4] = [{"type": "white_pawn", "pawn_buff": 0}]
+    game["board_state"][3][3] = [{"type": "black_pawn", "pawn_buff": 0}]
+    game["board_state"][1][0] = [{"type": "black_pawn", "pawn_buff": 0}]
+    snapshot = copy.deepcopy(game)
+
+    move = {"type": "capture", "from_pos": [4, 4], "to_pos": [3, 3], "capture_at": [3, 3]}
+    result = cpu_player.simulate_move(game, move, "white")
+
+    assert game == snapshot
+    assert result["captured_pieces"]["white"] == ["black_pawn"]
+    assert result["board_state"][3][3][0]["type"] == "white_pawn"
+    assert result["turn_count"] == 3
+
+
+def test_purchase_moves_for_white_use_white_half():
+    game = _make_game(turn_count=2)
+    game["gold_count"] = {"white": 2, "black": 0}
+
+    purchases = _get_purchase_moves(game, "white")
+
+    assert purchases
+    assert all(p["piece_type"] == "white_pawn" and p["to_pos"][0] >= 4 for p in purchases)
+
+
+def test_get_bishop_debuff_targets():
+    game = _make_game(turn_count=1)
+    game["board_state"][5][5] = [{"type": "white_knight", "bishop_debuff": 3}]
+    game["board_state"][5][6] = [{"type": "white_pawn", "pawn_buff": 0, "bishop_debuff": 2}]
+    game["board_state"][2][2] = [{"type": "black_pawn", "pawn_buff": 0, "bishop_debuff": 3}]
+
+    assert cpu_player.get_bishop_debuff_targets(game) == [{"from_pos": [5, 5], "piece_type": "white_knight"}]
+
+
+def test_capture_on_occupied_square_beats_adjacent_bishop_capture():
+    """Moving onto an enemy piece next to an enemy bishop must capture the piece landed on."""
+    game = _make_game(turn_count=1)
+    game["board_state"][0][0] = [{"type": "black_king"}]
+    game["board_state"][7][7] = [{"type": "white_king"}]
+    game["board_state"][3][3] = [{"type": "black_rook"}]
+    game["board_state"][3][5] = [{"type": "white_knight"}]
+    game["board_state"][4][5] = [{"type": "white_bishop", "energize_stacks": 0}]
+
+    rook_captures = [m for m in _get_raw_moves(game) if m["from_pos"] == [3, 3] and m["to_pos"] == [3, 5]]
+
+    assert rook_captures == [{"type": "capture", "from_pos": [3, 3], "to_pos": [3, 5], "capture_at": [3, 5]}]
+    assert _move_leaves_king_safe(game, rook_captures[0])

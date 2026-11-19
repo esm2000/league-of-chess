@@ -11,6 +11,7 @@ from .board_analysis import get_piece_value
 
 
 INVALID_GAME_STATE_ERROR_MESSAGE = "New game state is invalid"
+INVALID_CPU_DIFFICULTY_ERROR_MESSAGE = "CPU difficulty must be one of: easy, medium, hard"
 
 def check_to_see_if_more_than_one_piece_has_moved(
         old_game_state: GameState,
@@ -272,7 +273,7 @@ def check_for_disappearing_pieces(
             if not captured_piece_accounted_for:
                 # check to see if captured piece was next to a neutral monster 
                 for monster in MONSTER_INFO:
-                    potential_monster_position = old_game_state["board_state"][MONSTER_INFO[monster]["position"][0]][MONSTER_INFO[monster]["position"][1]]
+                    potential_monster_position = old_game_state["board_state"][MONSTER_INFO[monster]["position"][0]][MONSTER_INFO[monster]["position"][1]] or []
                     if abs(moved_piece["previous_position"][0] - MONSTER_INFO[monster]["position"][0]) in [0, 1] and \
                     abs(moved_piece["previous_position"][1] - MONSTER_INFO[monster]["position"][1]) in [0, 1] and \
                     any(piece["type"] == monster for piece in potential_monster_position):

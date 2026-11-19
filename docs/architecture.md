@@ -1,6 +1,6 @@
 # Architecture Reference
 
-Last Updated: 2026-03-15
+Last Updated: 2026-11-18
 
 Detailed module and structure reference for League of Chess. For conventions and workflow, see [CLAUDE.md](../CLAUDE.md). For game rules, see [README.md](../README.md).
 
@@ -11,6 +11,9 @@ more-chess/
 ├── backend/
 │   ├── src/
 │   │   ├── api.py               # FastAPI route definitions
+│   │   ├── cpu_player.py        # CPU polling loop, difficulty dispatch, move application
+│   │   ├── cpu_eval.py          # CPU static evaluation (variant-aware)
+│   │   ├── cpu_search.py        # CPU lookahead search (alpha-beta over the real pipeline)
 │   │   ├── types.py             # TypedDicts and type aliases
 │   │   ├── moves/               # Move generation package (one module per piece type)
 │   │   │   ├── __init__.py      # Dispatcher (get_moves()) + re-exports
@@ -71,6 +74,10 @@ more-chess/
 | Module | Responsibility |
 |--------|---------------|
 | `src/api.py` | FastAPI routes for game CRUD operations |
+| `src/cpu_player.py` | Background CPU (black): claims games, picks a move by difficulty (`easy` random, `medium` 50/50, `hard` search), resolves forced steps (surrender, promotion, bishop debuff), applies moves through the API pipeline |
+| `src/cpu_eval.py` | `evaluate(game_state, side)`: centipawn score from material, piece-square tables, piece statuses, neutral monsters and buffs, gold, capture point advantage. Weights are constants at the top of the file |
+| `src/cpu_search.py` | `choose_action()`: iterative-deepening alpha-beta with capture quiescence and a time limit. Builds child states with `simulate_game_update`, reads the side to move from `turn_count`, resolves forced steps inline |
+| `src/log.py` | Root logger; `suppress_logging()` silences the current thread while the CPU search simulates moves |
 | `src/utils/__init__.py` | Re-exports, error message constants |
 | `src/types.py` | TypedDicts & type aliases (`GameState`, `Piece`, `MoveResult`, `Position`, `BoardState`) |
 | `src/moves/__init__.py` | `get_moves()` dispatcher; per-piece modules in same package |
@@ -97,7 +104,8 @@ more-chess/
 |--------|---------------|
 | `components/Board.js` | Game board, piece interactions, move highlighting |
 | `components/Piece.js` | Piece rendering, drag-and-drop, buff indicators |
-| `context/GameStateContext.js` | Global state + API sync (`updateGameState`, `fetchGameState`) |
+| `components/DifficultySelect.js` | Easy / Medium / Hard buttons, used by the pre-game overlay in `Board.js` and the Restart row in `HUD.js` |
+| `context/GameStateContext.js` | Global state + API sync (`updateGameState`, `fetchGameState`, `startGame(difficulty)`, `restartGame`). No game is created until the player picks a difficulty (`needsDifficultyChoice`) |
 | `utility.js` | Shared helpers: `pickSide`, `snakeToCamel`, `BASE_API_URL` |
 
 ## Game State Shape

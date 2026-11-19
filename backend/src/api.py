@@ -5,7 +5,7 @@ import copy
 import datetime
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel, Extra
-from typing import Union
+from typing import Optional, Union
 
 from mocks.starting_game import starting_game
 # prevents circular import
@@ -27,6 +27,13 @@ from src.utils.game_update_pipeline import (
 )
 
 router = APIRouter(prefix="/api")
+
+CPU_DIFFICULTIES = ("easy", "medium", "hard")
+DEFAULT_CPU_DIFFICULTY = "easy"
+
+
+class CreateGameRequest(BaseModel):
+    cpu_difficulty: str = DEFAULT_CPU_DIFFICULTY
 
 
 class GameStateRequest(BaseModel, extra=Extra.allow):
@@ -53,9 +60,13 @@ class GameStateRequest(BaseModel, extra=Extra.allow):
 
 
 @router.post("/game", status_code=201)
-def create_game() -> dict:
+def create_game(request: Optional[CreateGameRequest] = None) -> dict:
     """Create a new game with the starting board state and persist to MongoDB."""
+    cpu_difficulty = request.cpu_difficulty if request else DEFAULT_CPU_DIFFICULTY
+    if cpu_difficulty not in CPU_DIFFICULTIES:
+        raise HTTPException(status_code=400, detail=utils.INVALID_CPU_DIFFICULTY_ERROR_MESSAGE)
     game_state = copy.deepcopy(starting_game)
+    game_state["cpu_difficulty"] = cpu_difficulty
     game_database = mongo_client["game_db"]
     game_database["games"].insert_one(game_state)
     game_state["id"] = str(game_state.pop("_id"))

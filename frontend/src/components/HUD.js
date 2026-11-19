@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import { GameStateContextData } from '../context/GameStateContext';
-import { IMAGE_MAP, PLAYERS, useIsMobile } from '../utility';
+import { IMAGE_MAP, PLAYERS, getStoredCpuDifficulty, useIsMobile } from '../utility';
+import DifficultySelect, { getDifficultyLabel } from './DifficultySelect';
 import Shop from './Shop';
 import BugReportForm from './BugReportForm';
 
@@ -88,12 +89,12 @@ const HUD = (props) => {
     const isGameOver = gameState.blackDefeat || gameState.whiteDefeat
     const isKingOnHomeSquare = gameState.boardState[7][4]?.[0]?.type === "white_king"
 
-    const handleConfirmRestart = () => {
+    const handleConfirmRestart = (difficulty) => {
         if (gameState.isReplaying) return
         setShowRestartConfirm(false)
         setToggleShop(false)
         props.setShopPieceSelected(null)
-        gameState.restartGame()
+        gameState.startGame(difficulty)
     }
 
     const confirmBtnStyle = {
@@ -128,6 +129,9 @@ const HUD = (props) => {
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: `${isMobile ? 1 : 0.5}vw` }}>
                         <span className={turnFlashClass} style={{ fontSize: `${isMobile ? 2.5 : 1.25}vw`, display: 'inline-block' }}>Turn: {turnCount}</span>
+                        {gameState.cpuDifficulty && (
+                            <span style={{ fontSize: `${isMobile ? 1.6 : 0.8}vw`, opacity: 0.7 }}>CPU: {getDifficultyLabel(gameState.cpuDifficulty)}</span>
+                        )}
                         {queenReset && (
                             <span className="queen-reset-indicator" style={{
                                 fontSize: `${isMobile ? 1.6 : 0.8}vw`,
@@ -193,19 +197,7 @@ const HUD = (props) => {
                             style={{...confirmBtnStyle, opacity: 0.7}}
                         >{toggleBugReport ? "Close" : "Report Bug"}</button>
                         {showRestartConfirm ?
-                            <>
-                                <span style={{ fontSize: `${isMobile ? 1.4 : 0.7}vw`, opacity: 0.8 }}>Restart?</span>
-                                <button
-                                    className="pixel-btn"
-                                    onClick={handleConfirmRestart}
-                                    style={confirmBtnStyle}
-                                >Yes</button>
-                                <button
-                                    className="pixel-btn"
-                                    onClick={() => setShowRestartConfirm(false)}
-                                    style={confirmBtnStyle}
-                                >No</button>
-                            </> :
+                            null :
                             <button
                                 className="pixel-btn"
                                 onClick={() => setShowRestartConfirm(true)}
@@ -214,6 +206,28 @@ const HUD = (props) => {
                         }
                     </div>
                 </div>
+                {showRestartConfirm ?
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: `${isMobile ? 0.6 : 0.3}vw`,
+                        marginTop: `${isMobile ? 1 : 0.5}vw`
+                    }}>
+                        <span style={{ fontSize: `${isMobile ? 1.4 : 0.7}vw`, opacity: 0.8 }}>Restart against:</span>
+                        <DifficultySelect
+                            selected={getStoredCpuDifficulty()}
+                            onSelect={handleConfirmRestart}
+                            buttonStyle={confirmBtnStyle}
+                        />
+                        <button
+                            className="pixel-btn"
+                            onClick={() => setShowRestartConfirm(false)}
+                            style={{...confirmBtnStyle, opacity: 0.7}}
+                        >Cancel</button>
+                    </div> :
+                    null
+                }
             </div>
             {
                 toggleShop ?

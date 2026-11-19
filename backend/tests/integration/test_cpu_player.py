@@ -4,9 +4,12 @@ import copy
 import os
 
 import pytest
-from fastapi import Response
+from bson.objectid import ObjectId
+from fastapi import HTTPException, Response
 
 import src.api as api
+import src.cpu_player as cpu_player
+from src.database import mongo_client
 from src.cpu_player import (
     get_all_valid_moves,
     apply_cpu_move,
@@ -114,3 +117,124 @@ def test_cpu_castle_move(game):
     king_square = result["board_state"][king_dest[0]][king_dest[1]]
     assert any("black_king" == p["type"] for p in king_square)
     assert result["turn_count"] % 2 == 0
+
+
+# ---------------------------------------------------------------------------
+# Difficulty
+# ---------------------------------------------------------------------------
+
+def _delete_game(game_id):
+    game_database = mongo_client["game_db"]
+    game_database["games"].delete_one({"_id": ObjectId(game_id)})
+    game_database["game_moves"].delete_many({"game_id": game_id})
+    game_database["game_state_history"].delete_many({"game_id": game_id})
+
+
+@pytest.fixture
+def hard_game():
+    game = api.create_game(api.CreateGameRequest(cpu_difficulty="hard"))
+    yield game
+    _delete_game(game["id"])
+
+
+def test_create_game_defaults_to_easy(game):
+    assert game["cpu_difficulty"] == "easy"
+
+
+@pytest.mark.parametrize("difficulty", ["easy", "medium", "hard"])
+def test_create_game_stores_requested_difficulty(difficulty):
+    game = api.create_game(api.CreateGameRequest(cpu_difficulty=difficulty))
+    try:
+        assert game["cpu_difficulty"] == difficulty
+        assert api.retrieve_game_state(game["id"], Response())["cpu_difficulty"] == difficulty
+    finally:
+        _delete_game(game["id"])
+
+
+def test_create_game_rejects_unknown_difficulty():
+    with pytest.raises(HTTPException) as exc_info:
+        api.create_game(api.CreateGameRequest(cpu_difficulty="impossible"))
+    assert exc_info.value.status_code == 400
+
+
+def test_client_cannot_change_difficulty_mid_game(hard_game):
+    tampered = copy.deepcopy(hard_game)
+    tampered["cpu_difficulty"] = "easy"
+    tampered["position_in_play"] = [6, 4]
+
+    result = api.update_game_state(hard_game["id"], api.GameStateRequest(**tampered), Response())
+
+    assert result["cpu_difficulty"] == "hard"
+
+
+def test_hard_cpu_completes_a_move(hard_game, monkeypatch):
+    """process_game on a hard game searches and plays a legal black move."""
+    monkeypatch.setattr(cpu_player, "HARD_THINK_SECONDS", 0.5)
+    monkeypatch.setattr(cpu_player, "CPU_MOVE_DELAY_SECONDS", 0)
+    game = select_and_move_white_piece(hard_game, 6, 4, 4, 4)
+    assert game["turn_count"] == 1
+
+    process_game(game["id"], "test-instance")
+
+    result = api.retrieve_game_state(game["id"], Response())
+    assert result["turn_count"] == 2
+    assert result["cpu_difficulty"] == "hard"
+    assert result["latest_movement"]["record"][0]["side"] == "black"
+
+
+def test_hard_cpu_takes_hanging_queen(hard_game, monkeypatch):
+    monkeypatch.setattr(cpu_player, "HARD_THINK_SECONDS", 1.0)
+    monkeypatch.setattr(cpu_player, "CPU_MOVE_DELAY_SECONDS", 0)
+    game = clear_game(hard_game)
+    game_state = copy.deepcopy(game)
+    # clear_game resets every field to the empty mock, including the difficulty
+    game_state["cpu_difficulty"] = "hard"
+    game_state["board_state"][0][4] = [{"type": "black_king"}]
+    game_state["board_state"][7][4] = [{"type": "white_king"}]
+    game_state["board_state"][2][2] = [{"type": "black_knight"}]
+    game_state["board_state"][4][1] = [{"type": "white_queen"}]
+    game_state["board_state"][6][0] = [{"type": "white_pawn", "pawn_buff": 0}]
+    game_state["turn_count"] = 1
+    api.update_game_state_no_restrictions(game["id"], api.GameStateRequest(**game_state), Response())
+
+    process_game(game["id"], "test-instance")
+
+    result = api.retrieve_game_state(game["id"], Response())
+    assert "white_queen" in result["captured_pieces"]["black"]
+
+
+@pytest.mark.parametrize("difficulty", ["easy", "hard"])
+def test_cpu_resolves_full_bishop_debuff_instead_of_stalling(difficulty, monkeypatch):
+    """With a white piece at 3 bishop debuff stacks, the CPU must capture or spare it."""
+    monkeypatch.setattr(cpu_player, "CPU_MOVE_DELAY_SECONDS", 0)
+    game = api.create_game(api.CreateGameRequest(cpu_difficulty=difficulty))
+    try:
+        game = clear_game(game)
+        game_state = copy.deepcopy(game)
+        # clear_game resets every field to the empty mock, including the difficulty
+        game_state["cpu_difficulty"] = difficulty
+        game_state["board_state"][0][4] = [{"type": "black_king"}]
+        game_state["board_state"][7][4] = [{"type": "white_king"}]
+        game_state["board_state"][1][1] = [{"type": "black_bishop", "energize_stacks": 0}]
+        game_state["board_state"][5][5] = [{"type": "white_knight", "bishop_debuff": 2}]
+        game_state["board_state"][6][0] = [{"type": "white_pawn", "pawn_buff": 0}]
+        game_state["turn_count"] = 1
+        game = api.update_game_state_no_restrictions(game["id"], api.GameStateRequest(**game_state), Response())
+
+        # Black bishop moves so the knight is on its diagonal, giving the third stack
+        after_move = apply_cpu_move(game["id"], game, {"type": "move", "from_pos": [1, 1], "to_pos": [2, 2]})
+        assert after_move["board_state"][5][5][0]["bishop_debuff"] == 3
+        assert after_move["turn_count"] == 1
+
+        process_game(game["id"], "test-instance")
+
+        result = api.retrieve_game_state(game["id"], Response())
+        assert result["turn_count"] == 2
+        knight_square = result["board_state"][5][5]
+        if difficulty == "hard":
+            assert knight_square is None
+            assert "white_knight" in result["captured_pieces"]["black"]
+        else:
+            assert knight_square is None or knight_square[0].get("bishop_debuff", 0) == 0
+    finally:
+        _delete_game(game["id"])

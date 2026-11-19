@@ -56,14 +56,17 @@ def get_unsafe_positions_for_kings(old_game_state: GameState, new_game_state: Ga
                 continue
             current_king_location = king_positions[side]
 
-            new_game_state_copy = copy.deepcopy(new_game_state)
-            simulated_game_state = copy.deepcopy(new_game_state)
+            # These states are only read by move generation, so the unmoved state is
+            # shared and the simulated one copies just the board rows it rearranges
+            # (deep copies here dominated the cost of every pipeline run).
+            simulated_game_state = dict(new_game_state)
+            simulated_game_state["board_state"] = [list(board_row) for board_row in new_game_state["board_state"]]
 
             simulated_game_state["board_state"][possible_king_location[0]][possible_king_location[1]] = simulated_game_state["board_state"][current_king_location[0]][current_king_location[1]]
             simulated_game_state["board_state"][current_king_location[0]][current_king_location[1]] = None
 
             simulated_game_state["turn_count"] += 1
-            old_game_states.append(new_game_state_copy)
+            old_game_states.append(new_game_state)
             new_game_states.append(simulated_game_state)
 
     adjacent_deltas = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]

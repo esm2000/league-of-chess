@@ -1,6 +1,10 @@
 # Chess Evaluation Algorithms — Complete Research Summary
 ### For Building a CPU in a League of Legends-Themed Chess Variant
 
+> **How to read this document.** Parts 1-7 are general background on chess engines, compiled
+> from the chess programming literature. **Part 8 describes this game**: the actual rules
+> (neutral monsters, buffs, gold), the evaluation and the search the CPU uses.
+
 ---
 
 ## PART 1: THE BIG PICTURE — What is an Evaluation Function?
@@ -38,9 +42,6 @@ f(p) = 200(K-K') + 9(Q-Q') + 5(R-R') + 3(B-B' + N-N')
 
 **Key design principle:** Every pair (X vs. X') is **your value minus opponent's value**. Positive = you're ahead. This symmetric structure works with NegaMax (explained later).
 
-### For your LoL variant:
-Replace piece types with LoL unit classes. Assign base "gold values" or power ratings to each champion. The formula adapts naturally — you're still computing "my power minus their power."
-
 ---
 
 ## PART 3: THE EVALUATION COMPONENTS IN DETAIL
@@ -67,8 +68,6 @@ The raw count of your pieces vs. theirs, multiplied by piece values.
 - **Trade-down incentive** — when ahead, exchange pieces (not pawns)
 - **Lone pawn rule** — no pawns means you need +4 pawn equivalent material to win
 
-**For LoL:** Assign each champion a "power value" based on their role. Carries might be worth more, but tanks might have defensive bonuses that modify their effective value contextually.
-
 ---
 
 ### 3.2 Piece-Square Tables (PSTs)
@@ -92,8 +91,6 @@ Knights are penalized on the edge and rewarded in the center.
 
 **Modern engines have TWO PST sets:** one for opening, one for endgame, interpolated by game phase (see Tapered Eval below).
 
-**For LoL:** Each champion has preferred zones on the "map." A mage might prefer the back row. A bruiser prefers the front. PSTs encode this naturally.
-
 ---
 
 ### 3.3 Mobility
@@ -113,11 +110,9 @@ Research by **Eliot Slater (1950)** showed a strong statistical correlation betw
 mobilityScore = mobilityWeight × (yourMoves - opponentMoves)
 ```
 
-**For LoL:** Mobility could represent abilities available, range coverage, or attack options. Units with more "reach" get bonuses.
-
 ---
 
-### 3.4 King Safety (or "Base Safety" in your variant)
+### 3.4 King Safety
 
 This is one of the most complex components in modern engines. A poorly defended king dramatically reduces position quality.
 
@@ -136,8 +131,6 @@ Safe queen contact check                         = 6 units
 4. Lookup into a **non-linear S-shaped table** — danger ramps up fast once multiple attackers converge
 
 **Virtual Mobility trick:** Temporarily place a queen on your king's square. Count how many enemy pieces can "see" it. This estimates attacking lines.
-
-**For LoL:** Replace "king" with your Nexus or high-value unit. The attack units concept maps perfectly to champions in range/zone of your base.
 
 ---
 
@@ -159,8 +152,6 @@ Pawn structure is slow-changing and expensive to compute, so engines cache it in
 | Passed pawn | No enemy pawn blocking or flanking — huge bonus, scales near promotion |
 | Connected pawns | Two pawns defending each other |
 | Pawn chain | Diagonal chain of mutually-defending pawns |
-
-**For LoL:** Unit formation bonuses/penalties. Clumped units might be vulnerable to AoE. Isolated units might be weaker. Units protecting each other get synergy bonuses.
 
 ---
 
@@ -188,8 +179,6 @@ normalizedPhase = (currentPhase × 256 + totalPhase/2) / totalPhase
 ```
 
 As pieces are captured, `phase` increases from 0 (opening) toward 256 (endgame). Every evaluation term can have both an opening weight and endgame weight, smoothly interpolated.
-
-**For LoL:** Early game vs. late game is literally a core LoL concept. Early game = board control, positioning, ability uptime. Late game = raw power scaling, 1v1 potential. Tapered eval models this perfectly.
 
 ---
 
@@ -234,7 +223,7 @@ function negamax(position, depth):
 
 ### 5.3 Alpha-Beta Pruning (The Critical Optimization)
 
-Without pruning, depth-8 search might examine 8^8 = 16 million nodes. Alpha-beta cuts this to roughly 8^4 = 4,096 nodes with perfect move ordering — a **10,000x speedup**.
+With a branching factor of b and depth d, plain minimax examines about b^d nodes. With perfect move ordering alpha-beta examines about b^(d/2): for b = 8 and d = 8 that is 8^8 ≈ 16.8 million nodes down to 8^4 = 4,096, roughly a **4,000x speedup**. (Standard chess has b ≈ 35; this variant starts around 22 for black.)
 
 **How it works:** Maintain a window [alpha, beta]:
 - **Alpha** = best score you're guaranteed so far
@@ -282,8 +271,6 @@ function quiescence(position, alpha, beta):
 
 **MVV-LVA (Most Valuable Victim, Least Valuable Aggressor):** Order captures so that capturing a queen with a pawn is searched before capturing a pawn with a queen.
 
-**For LoL:** Quiescence search is essential in any game where combats resolve over multiple steps. Your "combat resolution" phase is effectively quiescence search territory.
-
 ---
 
 ## PART 6: MODERN EVALUATION — NNUE Neural Networks
@@ -309,7 +296,7 @@ Most moves only affect 2-4 input neurons. Instead of running the full network fr
 - Loss function: minimize difference between predicted win% and actual result
 - Texel Tuning (logistic regression) was the precursor to this
 
-### Should you use NNUE for your game?
+### Should this game use NNUE?
 For a custom variant, **probably not initially.** NNUE requires massive training data. Start with hand-crafted evaluation (HCE), get it working, then optionally train a neural net later if you want stronger play.
 
 ---
@@ -321,13 +308,13 @@ For a custom variant, **probably not initially.** NNUE requires massive training
 **Key idea:** Treat position evaluation as logistic regression. For a large set of positions with known outcomes (win/draw/loss), minimize the mean squared error:
 
 ```
-error = (1/N) × Σ (sigmoid(eval(position) / K) - result)²
+error = (1/N) × Σ (sigmoid(eval(position)) - result)²
 ```
 
 Where:
 - `K` is a scaling constant (~400)
 - `result` = 1.0 for win, 0.5 for draw, 0.0 for loss
-- `sigmoid(x) = 1 / (1 + 10^(-x/K))`
+- `sigmoid(x) = 1 / (1 + 10^(-x/K))` (K is applied once, inside the sigmoid)
 
 **Process:**
 1. Collect thousands of positions (from games or self-play)
@@ -342,70 +329,184 @@ Where:
 - Keep the winners, mutate and breed
 - Works well for multi-objective tuning (strength + style)
 
-### For LoL variant:
-Start with hand-tuned weights based on game knowledge. Use automated tuning after you have working self-play. Even simple gradient descent over 100K self-play games will dramatically improve strength.
+### For this game
+Start with hand-tuned weights based on game knowledge. Automated tuning needs fast self-play, which this codebase does not have yet (see Part 8.5 and 8.7).
 
 ---
 
-## PART 8: APPLYING ALL OF THIS TO YOUR LOL CHESS VARIANT
+## PART 8: APPLYING THIS TO LEAGUE OF CHESS (CODE-GROUNDED)
 
-### Step 1: Define Your "Pieces" (Champions)
+Parts 1-7 are general chess-engine background. This part describes what the CPU in
+this game actually does. The game is chess pieces with modified rules, neutral monsters,
+buffs and gold; the code is the source of truth for those rules, and where the README
+and the code disagree, the CPU follows the code.
 
-Each champion needs:
-- **Base power value** (material score equivalent)
-- **Position table** (where on the board are they strongest?)
-- **Opening vs. endgame weights** (early game vs. late game strength)
-- **Special abilities** (modifiers to normal eval rules)
+Implementation: `backend/src/cpu_eval.py` (evaluation), `backend/src/cpu_search.py`
+(search), `backend/src/cpu_player.py` (difficulty dispatch and move application).
 
-### Step 2: Define Your Evaluation Terms
+### 8.1 Difficulty levels
 
-Adapt Shannon's formula for your game:
+| Level | Behaviour |
+|---|---|
+| Easy | Random legal move (occasionally a random purchase) |
+| Medium | Each turn: 50% a random move, 50% the Hard algorithm |
+| Hard | Always the algorithm below, about 5 seconds per move |
+
+Difficulty is chosen when the game is created (`POST /api/game` with
+`{"cpu_difficulty": ...}`) and is fixed for that game.
+
+### 8.2 Rules that change the evaluation
+
+Piece movement differs from chess in ways that change piece values:
+
+- **Knights cannot jump.** Either L-shaped path must be clear, so knights are weak in
+  crowded positions. Valued at 270, below a bishop.
+- **Rooks have a range of 3**, growing by 1 every 5 turns from turn 15 until it covers
+  the board at turn 30. Valued at 400 plus 25 per extra square of range.
+- **Bishops can be captured from any adjacent square** by a piece that moves next to
+  them, but they also debuff what they attack and gain energize stacks. Valued at 330.
+- **Queens** stun adjacent enemies when they move without capturing, and get an extra
+  move after a kill or assist. A queen can therefore take a defended piece and step away.
+  Queens cannot be bought. Valued at 900.
+- **Kings are never captured.** The game ends by checkmate, or by a monster killing a king.
+- **File control:** one vertical move cannot run from a side's back two ranks to the
+  other side's back two ranks.
+
+Statuses the evaluation reads from each piece:
+
+| Status | Effect in the game | Evaluation |
+|---|---|---|
+| `is_stunned` | Piece misses its owner's next turn | -15% of its value |
+| `bishop_debuff` 1 / 2 / 3 | At 3 the bishop's owner may remove the piece | -5% / -25% / -80% |
+| `energize_stacks` | At 100 a bishop captures diagonally adjacent to where it lands | +0.5 per stack, +30 at 100 |
+| `marked_for_death` | Owner must surrender one marked piece | minus the cheapest marked piece |
+| `check_protection` | Sword in the stone: absorbs one check | +80 per charge |
+
+### 8.3 Neutral monsters
+
+Monsters matter more than any positional
+term because they both kill pieces and hand out the strongest buffs.
+
+| Monster | Square | Health | Spawns on turn |
+|---|---|---|---|
+| Dragon | h4 | 5 | every 10th turn (10, 20, 30, ...) |
+| Board Herald | a5 | 5 | 10 and 20 |
+| Baron Nashor | a5 | 10 | 35, then every 15 turns |
+
+Turns are half-moves: even turns are white's, odd turns are black's.
+
+- **Damage:** a piece that moves onto or next to a monster deals 1 damage (2 with two or
+  more dragon stacks). Pieces that were already adjacent and did not move deal none. A
+  monster untouched for 6 turns heals to full.
+- **Danger zone:** a piece in the 3x3 around a live monster is marked and dies two turns
+  later unless it has left. The evaluation charges 90% of a piece's value once its owner
+  can no longer move it out in time, and only a small tempo cost before that. Kings can
+  never enter a monster's zone.
+- **Spawning:** a monster spawning on an occupied square destroys what is there, and a
+  king on that square loses the game. The evaluation penalises standing on h4 or a5
+  within two turns of a spawn.
+- **Credit:** the side whose piece lands the last hit gets the buff and 1 gold.
+
+Buffs, as valued by the evaluation:
+
+| Buff | Effect in the game | Value |
+|---|---|---|
+| Dragon, 1 stack | Pawns move and capture up to 2 squares | 40 |
+| Dragon, 2 stacks | All pieces deal 2 damage to monsters | 120 |
+| Dragon, 3 stacks | Pieces pass through their own pawns | 180 |
+| Dragon, 4 stacks | Pieces pass through any ally; castling ignores blockers | 260 |
+| Dragon, 5 stacks | For 6 turns, moving a piece marks adjacent enemies for death | 400 |
+| Board Herald (8 turns) | Pawns next to the killer capture straight ahead | 60 |
+| Baron Nashor (8 turns) | Pawns capture straight ahead and resist enemy pawns | 40 + 20 per pawn |
+
+Partial damage on a monster is credited (12 per missing health point) to the side with
+more pieces in its zone, so the search sees progress toward a kill before it lands.
+
+### 8.4 Economy
+
+- **Gold:** 1 per capture, including monster kills. Pieces cost twice their point value
+  (pawn 2, knight 6, bishop 6, rook 10). Unspent gold is valued at 35 per coin, a little
+  under the piece it buys, so buying is roughly neutral and is chosen when nothing better
+  is available.
+- **Capture point advantage:** computed from the *average* value of each side's pieces
+  on the board, not the total. The leading side's pawns can capture pawns straight ahead
+  at an advantage of 1 or more, and are immune to enemy pawn captures above 1. Because it
+  is an average, losing pawns can raise it, so the usual "trade down when ahead" rule
+  does not transfer. The evaluation reads the game's own `capture_point_advantage` field.
+- **Purchases in the search:** considered only at the root, limited to the two best
+  squares per affordable piece. Opponent purchases are ignored.
+
+### 8.5 Evaluation formula
+
+Centipawns from one side's point of view; `score(side) - score(opponent)`:
 
 ```
-eval = championValues
-     + positionBonuses (PST)
-     + mobilityScore
-     + safetyScore (nexus/base safety)
-     + synergyBonuses (e.g., team comps)
-     - weaknessesScore (isolated units, bad positioning)
-     + gamePhaseAdjustments (early/late game scaling)
+score(side) = Σ pieces [ material + piece-square bonus - status penalties - monster zone / spawn penalties ]
+            + 35 × gold
+            + dragon stack value + herald value + baron value
+            + capture point advantage bonus
+            - 30 if in check
+            - cheapest marked-for-death piece
+            + monster damage credit
 ```
 
-### Step 3: Implement NegaMax + Alpha-Beta
+A decided game scores ±100,000, a draw 0, and two bare kings 0. Every weight is a named
+constant at the top of `cpu_eval.py`.
 
-Start here. It's ~100 lines of code and gives you a working CPU immediately. Depth 4-5 will feel competent to most players.
+Not used, and why:
 
-```
-Recommended stack:
-- NegaMax with Alpha-Beta
-- Transposition table (Zobrist hashing)
-- Iterative deepening
-- Quiescence search for combat resolution
-- Move ordering (captures first, then positional moves)
-```
+- **Game phase by piece count / tapered evaluation (Part 4).** Pieces can be bought back,
+  so piece count does not measure progress. The clock that matters is the turn count,
+  which already drives rook range and monster spawns.
+- **Pawn structure terms (Part 3.5).** Forward captures from buffs and two-square pawn
+  moves make doubled, blocked and isolated pawns mean something different here.
+- **Mobility (Part 3.3).** Generating every move for both sides at each leaf roughly
+  doubles the cost of a leaf; the time is better spent searching.
+- **NNUE and automated tuning (Parts 6 and 7).** At about a millisecond per simulated
+  move, the 10,000 self-play games suggested for tuning are out of reach for now.
 
-### Step 4: Add Game-Phase Awareness
+### 8.6 Search
 
-Since LoL has explicit early/late game scaling (champion power curves), tapered evaluation is a natural fit. Define:
-- `openingWeight` = early game strength
-- `endgameWeight` = late game scaling
-- Phase = based on items/gold/time (your game's equivalent of piece count)
+The depth 4-5 with a transposition table that chess engines commonly use assumes an engine
+that makes and unmakes moves in microseconds. Here every move is run through the real
+update pipeline (`simulate_game_update`) so that all rules apply exactly as in a live
+game. That costs about 1.2 ms per move in isolation and about 2.3 ms inside the running
+server.
 
-### Step 5: Special LoL Mechanics
+- **Algorithm:** iterative-deepening alpha-beta with a hard time limit (5 seconds).
+  From the starting position this completes a two-move lookahead and part of a third.
+  If time runs out mid-iteration, moves already searched at the deeper level are used.
+- **Who moves next is read from the state, not assumed.** Queen resets, surrendering a
+  marked piece, resolving a full bishop debuff, pawn promotion and stun turn-skips all
+  give one side consecutive actions. Plain NegaMax, which negates the score every ply,
+  would be wrong here; the search maximises or minimises according to `turn_count`.
+- **Forced steps are resolved inline:** promote to a queen, surrender the cheapest marked
+  piece, capture (rather than spare) a piece with a full bishop debuff.
+- **Quiescence (Part 5.4):** leaves are extended two plies through captures, using this
+  game's captures: adjacent bishop captures, energized bishop captures and 1-health
+  monsters all count.
+- **Move ordering:** best move of the previous iteration first, then captures by most
+  valuable victim and cheapest attacker.
+- **Near-equal moves:** moves within 8 centipawns are treated as equal, and the one with
+  the best immediate score is preferred, so the CPU takes a gain now rather than next
+  turn. There is no repetition or 50-move rule in this game, so reversing the previous
+  move is also penalised to stop piece shuffling.
 
-For rules unique to your game, the evaluation needs custom terms:
-- **Crowd Control** — units that can stun/slow attackers: add safety bonus
-- **Range** — ranged units cover more of the board: mobility bonus
-- **Sustain** (healing/lifesteal) — endurance in prolonged fights: combat eval term
-- **Burst damage** — can one-shot enemy carries: prioritize targeting
-- **Team compositions** — if you have champion synergies (like TFT traits): explicit synergy bonus terms
+Deliberately left out:
 
-### Step 6: Tune Your Weights
+- **Null-move pruning.** It assumes passing is never better than moving. Here a piece in
+  a monster zone must move or die, and stuns already skip turns, so the assumption fails.
+- **Transposition table with Zobrist hashing.** The state includes turn-dependent timers,
+  monster health, stacks, marks and buffs, so identical positions are rare.
+- **Randomness.** The sword in the stone appears on a random square, which the search
+  cannot predict; it ignores future sword spawns.
 
-1. Hard-code initial weights from LoL balance knowledge
-2. Play 10,000 CPU-vs-CPU games
-3. Apply Texel-style logistic regression to optimize
-4. Repeat
+### 8.7 Ideas for later
+
+- A faster node (copying only what a move changes, or caching attack maps) would buy
+  more depth than any evaluation term.
+- A CPU-versus-CPU harness for both colours would make weight tuning (Part 7) possible.
+- Mobility and king-zone pressure terms, once nodes are cheap enough.
 
 ---
 
@@ -429,13 +530,13 @@ For rules unique to your game, the evaluation needs custom terms:
 
 ---
 
-## PART 10: RECOMMENDED READING ORDER (for your use case)
+## PART 10: RECOMMENDED READING ORDER
 
 1. **Start:** Read the chessprogramming.org pages on Material, Piece-Square Tables, and NegaMax — you can build a working CPU from just these.
 2. **Then:** Alpha-Beta Pruning and Iterative Deepening — makes it fast enough to be practical.
-3. **Then:** Quiescence Search — essential for any game with multi-step combat.
-4. **Then:** Tapered Evaluation — for your early/late game scaling.
-5. **Then:** King Safety — adapt for Nexus/base safety.
+3. **Then:** Quiescence Search — stops a position being judged in the middle of an exchange.
+4. **Then:** Tapered Evaluation — background only; not used here (see Part 8.5).
+5. **Then:** King Safety.
 6. **Advanced:** Texel Tuning — when you want to automatically improve your weights.
 7. **Optional:** NNUE — only if you want top-tier strength and can generate training data.
 
