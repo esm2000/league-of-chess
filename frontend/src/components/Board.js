@@ -243,10 +243,7 @@ const Board = () => {
                             padding: `${isMobile ? 3 : 1.5}vw ${isMobile ? 4 : 2}vw`,
                             textAlign: 'center',
                         }}>
-                            <div style={{ fontSize: `${isMobile ? 2.8 : 1.4}vw`, marginBottom: `${isMobile ? 0.8 : 0.4}vw` }}>Choose your opponent</div>
-                            <div style={{ fontSize: `${isMobile ? 1.6 : 0.8}vw`, opacity: 0.8, marginBottom: `${isMobile ? 2 : 1}vw` }}>
-                                Easy plays at random. Hard always looks ahead. Medium does a bit of both.
-                            </div>
+                            <div style={{ fontSize: `${isMobile ? 2.8 : 1.4}vw`, marginBottom: `${isMobile ? 2 : 1}vw` }}>Choose your opponent</div>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: `${isMobile ? 1.6 : 0.8}vw` }}>
                                 <DifficultySelect
                                     selected={getStoredCpuDifficulty()}
