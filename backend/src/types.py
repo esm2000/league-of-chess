@@ -202,6 +202,7 @@ class GameState(TypedDict, total=False):
     # CPU player fields
     cpu_id: Optional[str]
     last_checked_by_cpu: Optional[datetime.datetime]
+    cpu_difficulty: str
     version: int
 
 

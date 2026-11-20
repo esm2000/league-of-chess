@@ -13,7 +13,9 @@ def reset_queen_turn_on_kill_or_assist(old_game_state: GameState, new_game_state
         for j in range(len(row)):
             square = row[j] or []
             for piece in square:
-                if piece["type"] == f"{moving_side}_queen":
+                # A stunned queen cannot use the extra move, and granting it would leave
+                # her side with no legal move at all.
+                if piece["type"] == f"{moving_side}_queen" and not piece.get("is_stunned", False):
                     queen_possible_moves_and_captures = moves.get_moves_for_queen(
                         curr_game_state=old_game_state,
                         prev_game_state=old_game_state.get("previous_state"),

@@ -120,6 +120,11 @@ button {
     background-color: rgb(140, 90, 40);
 }
 
+.pixel-btn-selected {
+    border-color: rgb(255, 215, 0);
+    color: rgb(255, 215, 0);
+}
+
 .modal-overlay {
     position: absolute;
     top: 0;

@@ -10,11 +10,12 @@ import Victory from './Victory';
 import Defeat from './Defeat';
 import Draw from './Draw';
 import PawnExchangeModal from './PawnExchangeModal';
+import DifficultySelect from './DifficultySelect';
 
 
 import { GameStateContextData }  from '../context/GameStateContext';
 
-import { PLAYERS, pickSide, snakeToCamel, useIsMobile } from '../utility';
+import { PLAYERS, getStoredCpuDifficulty, pickSide, snakeToCamel, useIsMobile } from '../utility';
 
 const BOARD_FLASH_DURATION = 1200
 const FRAME_BG_COLOR = 'rgb(71, 33, 1)'
@@ -235,6 +236,27 @@ const Board = () => {
                         side={PLAYERS[0]}
                         onExchange={() => setPawnExchangePosition(null)}
                     />
+                )}
+                {gameState.needsDifficultyChoice && (
+                    <div className="modal-overlay">
+                        <div className="pixel-panel" style={{
+                            padding: `${isMobile ? 3 : 1.5}vw ${isMobile ? 4 : 2}vw`,
+                            textAlign: 'center',
+                        }}>
+                            <div style={{ fontSize: `${isMobile ? 2.8 : 1.4}vw`, marginBottom: `${isMobile ? 2 : 1}vw` }}>Choose your opponent</div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: `${isMobile ? 1.6 : 0.8}vw` }}>
+                                <DifficultySelect
+                                    selected={getStoredCpuDifficulty()}
+                                    onSelect={(difficulty) => gameState.startGame(difficulty)}
+                                    buttonStyle={{
+                                        fontSize: `${isMobile ? 2.2 : 1.1}vw`,
+                                        padding: `${isMobile ? 1 : 0.5}vw ${isMobile ? 2.4 : 1.2}vw`,
+                                        borderRadius: `${isMobile ? 0.6 : 0.3}vw`
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 )}
                 {reconnectMessage && (
                     <div className="pixel-panel" style={{

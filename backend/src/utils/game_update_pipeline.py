@@ -311,6 +311,8 @@ def finalize_game_state(old_game_state: GameState, new_game_state: GameState, mo
     # potentially stale version) so the optimistic concurrency check in
     # perform_game_state_update compares against the actual DB state.
     new_game_state["version"] = old_game_state.get("version", 0)
+    # CPU difficulty is fixed at game creation; never accept a client-side change.
+    new_game_state["cpu_difficulty"] = old_game_state.get("cpu_difficulty", "easy")
     utils.perform_game_state_update(new_game_state, mongo_client, id)
 
     # Log move to game_moves collection (after persistence to avoid phantom entries)

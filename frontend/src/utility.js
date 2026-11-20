@@ -2,6 +2,28 @@ import React from 'react';
 
 const PLAYERS = ["white", "black"]
 const PROMOTION_PIECES = ["Knight", "Bishop", "Rook", "Queen"]
+const CPU_DIFFICULTIES = ["easy", "medium", "hard"]
+const DEFAULT_CPU_DIFFICULTY = "easy"
+const CPU_DIFFICULTY_STORAGE_KEY = "cpuDifficulty"
+
+// The last difficulty the player picked, used only to highlight a default in the pickers.
+// localStorage can be unavailable (private windows, blocked site data), so fail soft.
+const getStoredCpuDifficulty = () => {
+    try {
+        const stored = window.localStorage.getItem(CPU_DIFFICULTY_STORAGE_KEY)
+        return CPU_DIFFICULTIES.includes(stored) ? stored : DEFAULT_CPU_DIFFICULTY
+    } catch (e) {
+        return DEFAULT_CPU_DIFFICULTY
+    }
+}
+
+const storeCpuDifficulty = (difficulty) => {
+    try {
+        window.localStorage.setItem(CPU_DIFFICULTY_STORAGE_KEY, difficulty)
+    } catch (e) {
+        // not being able to remember the choice is harmless
+    }
+}
 
 var BASE_API_URL
 if (process.env.REACT_APP_LOCAL === "true") {
@@ -363,6 +385,10 @@ const useIsMobile = () => {
 export {
     PLAYERS,
     PROMOTION_PIECES,
+    CPU_DIFFICULTIES,
+    DEFAULT_CPU_DIFFICULTY,
+    getStoredCpuDifficulty,
+    storeCpuDifficulty,
     IMAGE_MAP, 
     DRAGON_POSITION,
     BOARD_HERALD_POSITION,

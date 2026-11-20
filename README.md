@@ -259,8 +259,8 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
 * Enhance instructions with local database setup ✅
 * AI - https://www.chessprogramming.org/Evaluation#Publications (see [docs/cpu-eval-research.md](docs/cpu-eval-research.md) for compiled research)
     - rudimentary EASY enemy AI (chooses random moves from possible moves) ✅
-    - ADVANCED enemy AI that plays as well as possible
-    - MEDIUM enemy AI
+    - ADVANCED (HARD) enemy AI: evaluation function + lookahead search, about 5 seconds per move ✅
+    - MEDIUM enemy AI: each turn, 50% random move and 50% the HARD algorithm ✅
 * Log moves to a `game_moves` collection for full game history and bug report tracing ✅
 * provide mechanism for user bug reports (frontend sends game id and user feedback to backend and backend records info) ✅
 
@@ -268,9 +268,9 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
 * Restructure project for deployment ✅
 * Dockerize project with Docker Compose ✅
 * Add database setup to instructions in README ✅
-* change backend code to only use "pure functions" and remove side effects
+* change the backend update pipeline to pure functions that return a new state and share unchanged data (no in-place mutation, no deep copies); measure Hard CPU search speed before and after
 * Un-nest the code (extraction and inversion) - https://www.youtube.com/watch?v=CFRhGnuXG-4&t=40s
-* Clean up and refactor code
+* Clean up and refactor code ✅
 * Linting (Black for Python backend)
 * Proofread and finalize README
 * Create a Kubernetes deployment script and a configuration file

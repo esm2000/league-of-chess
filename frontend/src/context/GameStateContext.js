@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react"
-import { PLAYERS, BASE_API_URL, convertKeysToCamelCase, convertKeysToSnakeCase } from '../utility';
+import {
+    PLAYERS, BASE_API_URL, CPU_DIFFICULTIES, convertKeysToCamelCase, convertKeysToSnakeCase,
+    getStoredCpuDifficulty, storeCpuDifficulty
+} from '../utility';
 
 const createEmptyBoardState = () => (
     Array.from({ length: 8 }, () => Array(8).fill(null))
@@ -81,7 +84,9 @@ const GameStateContext = createContext({
         white: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}},
         black: {dragon: {stacks:0, turn: 0}, boardHerald: {active: false, turn: 0}, baronNashor: {active: false, turn: 0}}
     },
-    restartGame: () => {}
+    restartGame: () => {},
+    startGame: () => {},
+    needsDifficultyChoice: false
 })
 
 export function GameStateContextData() {
@@ -124,9 +129,7 @@ export function GameStateProvider({children}) {
             if (!jsonResponse) return
             const parsedJsonResponse = {
                 ...convertKeysToCamelCase(jsonResponse),
-                updateGameState: updateGameState,
-                restartGame: restartGame,
-                startReplay: startReplay,
+                ...actions,
                 isReplaying: false,
                 hasReplayHistory: jsonResponse["turn_count"] > 1
             }
@@ -140,6 +143,8 @@ export function GameStateProvider({children}) {
 
     const [gameState, setGameState] = useState(createInitialGameState);
     const [reconnectMessage, setReconnectMessage] = useState(null)
+    // True when there is no game yet and the player has to pick a difficulty to start one
+    const [needsDifficultyChoice, setNeedsDifficultyChoice] = useState(false)
 
     const fetchInProgress = useRef(false)
     const fetchGeneration = useRef(0)
@@ -147,6 +152,8 @@ export function GameStateProvider({children}) {
     const replayIntervalRef = useRef(null)
     const updateFailCount = useRef(0)
     const fetchFailCount = useRef(0)
+    // Difficulty of the game in progress, reused when the game is recreated automatically
+    const currentDifficulty = useRef(getStoredCpuDifficulty())
 
     const startReplay = () => {
         if (isReplayingRef.current) return
@@ -160,7 +167,7 @@ export function GameStateProvider({children}) {
                 const sequence = states.map(s => convertKeysToCamelCase(s))
                 isReplayingRef.current = true
 
-                setGameState(prev => ({ ...sequence[0], updateGameState, restartGame, startReplay, isReplaying: true, hasReplayHistory: true }))
+                setGameState(prev => ({ ...sequence[0], ...actions, isReplaying: true, hasReplayHistory: true }))
 
                 let stepIndex = 1
                 replayIntervalRef.current = setInterval(() => {
@@ -172,43 +179,89 @@ export function GameStateProvider({children}) {
                         fetchGameState()
                         return
                     }
-                    setGameState(prev => ({ ...sequence[stepIndex], updateGameState, restartGame, startReplay, isReplaying: true, hasReplayHistory: true }))
+                    setGameState(prev => ({ ...sequence[stepIndex], ...actions, isReplaying: true, hasReplayHistory: true }))
                     stepIndex++
                 }, 1250)
             })
             .catch(e => console.log('Replay fetch error:', e))
     }
 
+    const applyFetchedGame = (result) => {
+        const parsedResult = {
+            ...convertKeysToCamelCase(result),
+            ...actions,
+            isReplaying: false,
+            hasReplayHistory: result["turn_count"] > 0
+        }
+        if (CPU_DIFFICULTIES.includes(parsedResult.cpuDifficulty)) {
+            currentDifficulty.current = parsedResult.cpuDifficulty
+        }
+        setGameState(parsedResult)
+        setNeedsDifficultyChoice(false)
+        sessionStorage.setItem("gameStateId", parsedResult["id"])
+        sessionStorage.setItem("lastUpdated", parsedResult["lastUpdated"])
+    }
+
+    // Creates a new game against a CPU of the given difficulty
+    const createGame = (difficulty) => {
+        fetchGeneration.current += 1
+        const currentGeneration = fetchGeneration.current
+        fetchInProgress.current = true
+        currentDifficulty.current = difficulty
+
+        fetch(`${BASE_API_URL}/api/game`, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cpu_difficulty: difficulty })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Request failed with status code ${response.status}: ${response.statusText}`)
+            }
+            return response.json()
+        })
+        .then(result => {
+            fetchInProgress.current = false
+            if (fetchGeneration.current !== currentGeneration) return
+            console.log(`POST Game ID - ${result["id"]}`)
+            applyFetchedGame(result)
+        })
+        .catch(exception => {
+            console.log(exception);
+            fetchInProgress.current = false
+            // let the player try again from the difficulty picker
+            if (fetchGeneration.current === currentGeneration) setNeedsDifficultyChoice(true)
+        });
+    }
+
     const fetchGameState = () => {
         if (isReplayingRef.current) return
         if (fetchInProgress.current) return
+        const gameStateId = sessionStorage.getItem("gameStateId")
+
+        // No game yet: wait for the player to pick a difficulty instead of creating one
+        if (gameStateId == null) {
+            setNeedsDifficultyChoice(true)
+            return
+        }
+
         fetchInProgress.current = true
         const currentGeneration = fetchGeneration.current
 
-        var url
-        var method
-        const gameStateId = sessionStorage.getItem("gameStateId")
-
-        if (gameStateId == null) {
-            url = `${BASE_API_URL}/api/game`
-            method = "POST"
-        } else {
-            url = `${BASE_API_URL}/api/game/${gameStateId}`
-            method = "GET"
-        }
-
-        fetch(url, {"method": method})
+        fetch(`${BASE_API_URL}/api/game/${gameStateId}`, {"method": "GET"})
         .then(response => {
-            if (!response.ok && method === "GET") {
+            if (!response.ok) {
                 fetchFailCount.current += 1
                 console.log(`Game fetch failed ${response.status} (${fetchFailCount.current}/3)`)
                 if (fetchFailCount.current >= 3) {
                     fetchFailCount.current = 0
                     setReconnectMessage("Lost connection to game — starting fresh")
-                    fetchInProgress.current = false
                     sessionStorage.removeItem("gameStateId")
                     sessionStorage.removeItem("lastUpdated")
-                    fetchGameState()
+                    createGame(currentDifficulty.current)
+                    return null
                 }
                 fetchInProgress.current = false
                 return null
@@ -218,27 +271,10 @@ export function GameStateProvider({children}) {
         })
         .then(result => {
             if (!result) return
-            if (fetchGeneration.current !== currentGeneration || isReplayingRef.current) {
-                fetchInProgress.current = false
-                return
-            }
-            if (method === "POST") {
-                console.log(`POST Game ID - ${result["id"]}`)
-            } else {
-                console.log(`GET Game ${result["id"]}`)
-            }
-            const parsedResult = {
-                ...convertKeysToCamelCase(result),
-                updateGameState: updateGameState,
-                restartGame: restartGame,
-                startReplay: startReplay,
-                isReplaying: false,
-                hasReplayHistory: result["turn_count"] > 0
-            }
-            setGameState(parsedResult)
-            sessionStorage.setItem("gameStateId", parsedResult["id"])
-            sessionStorage.setItem("lastUpdated", parsedResult["lastUpdated"])
             fetchInProgress.current = false
+            if (fetchGeneration.current !== currentGeneration || isReplayingRef.current) return
+            console.log(`GET Game ${result["id"]}`)
+            applyFetchedGame(result)
         })
         .catch(exception => {
             console.log(exception);
@@ -246,23 +282,34 @@ export function GameStateProvider({children}) {
         });
     }
 
-    const restartGame = () => {
+    // Abandons the current game and starts a new one. Without an explicit difficulty
+    // (automatic restarts after losing the game state) the current one is kept.
+    const restartGame = (difficulty) => {
+        const nextDifficulty = CPU_DIFFICULTIES.includes(difficulty) ? difficulty : currentDifficulty.current
         if (replayIntervalRef.current) {
             clearInterval(replayIntervalRef.current)
             replayIntervalRef.current = null
         }
         isReplayingRef.current = false
-        fetchGeneration.current += 1
         sessionStorage.removeItem("gameStateId")
         sessionStorage.removeItem("lastUpdated")
         setGameState({
             ...createInitialGameState(),
-            updateGameState, restartGame, startReplay,
+            ...actions,
             isReplaying: false, hasReplayHistory: false
         })
-        fetchInProgress.current = false
-        fetchGameState()
+        createGame(nextDifficulty)
     }
+
+    // Starts a game from the difficulty picker and remembers the choice as the next default
+    const startGame = (difficulty) => {
+        storeCpuDifficulty(difficulty)
+        restartGame(difficulty)
+    }
+
+    // Callbacks handed to consumers alongside the game state. Declared last: the
+    // callbacks above only read it when they run, never while this component renders.
+    const actions = { updateGameState, restartGame, startGame, startReplay }
 
     useEffect(() => {
         fetchGameState()
@@ -282,7 +329,7 @@ export function GameStateProvider({children}) {
     }, [reconnectMessage])
 
     return(
-        <GameStateContext.Provider value={{ ...gameState, reconnectMessage }}>
+        <GameStateContext.Provider value={{ ...gameState, ...actions, reconnectMessage, needsDifficultyChoice }}>
             {children}
         </GameStateContext.Provider>
     )

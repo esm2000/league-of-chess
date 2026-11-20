@@ -48,6 +48,7 @@ empty_game = {
     },
     "cpu_id": None,
     "last_checked_by_cpu": None,
+    "cpu_difficulty": "easy",
     "version": 0,
     "board_state": [
         [None] * 8,
