@@ -268,7 +268,7 @@ Spawns on the a5 square every 15 turns after the 20th turn. Grants a 4-turn buff
 * Restructure project for deployment ✅
 * Dockerize project with Docker Compose ✅
 * Add database setup to instructions in README ✅
-* change backend code to only use "pure functions" and remove side effects
+* change the backend update pipeline to pure functions that return a new state and share unchanged data (no in-place mutation, no deep copies); measure Hard CPU search speed before and after
 * Un-nest the code (extraction and inversion) - https://www.youtube.com/watch?v=CFRhGnuXG-4&t=40s
 * Clean up and refactor code
 * Linting (Black for Python backend)
